@@ -1155,6 +1155,26 @@ public final class Settings {
          */
         public static final String STAY_ON_WHILE_PLUGGED_IN = "stay_on_while_plugged_in";
 
+
+        /**
+         * @hide
+         * Whether Dual microhpone is enabled.
+         */
+        public static final String DUALMIC = "dualmic";
+
+        /**
+         * @hide
+         * Whether ANC is enabled.
+         */
+        public static final String ANC = "anc";
+
+        /**
+          * Default file manager to show files on extrenal storage media
+          * when it is mounted
+          * @hide
+          */
+        public static final String DEFAULT_FILE_MANAGER = "default_file_manager";
+
         /**
          * What happens when the user presses the end call button if they're not
          * on a call.<br/>
@@ -2642,6 +2662,13 @@ public final class Settings {
          * @hide
          */
         public static final String WEATHER_UPDATE_INTERVAL = "weather_update_interval";
+
+         /**
+          * Auto Answer timeout value. The supported timeout values are 5 sec,
+          * 10 sec, 15 sec and -1 (for disabling).
+          * @hide
+          */
+        public static final String AUTO_ANSWER_TIMEOUT = "auto_answer";
 
         /**
          * Use Metric measurements (celcius, km/h) for weather data

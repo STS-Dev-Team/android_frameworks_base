@@ -237,7 +237,6 @@ public class TelephonyIntents {
     public static final String ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS
             = "android.intent.action.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS";
 
-
     /**
      * Broadcast Action: A "secret code" has been entered in the dialer. Secret codes are
      * of the form *#*#<code>#*#*. The intent will have the data URI:</p>
@@ -275,4 +274,15 @@ public class TelephonyIntents {
     public static final String EXTRA_PLMN       = "plmn";
     public static final String EXTRA_SHOW_SPN   = "showSpn";
     public static final String EXTRA_SPN        = "spn";
+
+    /**
+     * <p>Broadcast Action: It indicates the an RIL_UNSOL_OEM_HOOK_RAW message was received
+     * <p class="note">.
+     * This is to indicate OEM applications that an unsolicited OEM message was received.
+     *
+     * <p class="note">This is a protected intent that can only be sent
+     * by the system.
+     */
+    public static final String ACTION_UNSOL_RESPONSE_OEM_HOOK_RAW
+            = "android.intent.action.ACTION_UNSOL_RESPONSE_OEM_HOOK_RAW";
 }
