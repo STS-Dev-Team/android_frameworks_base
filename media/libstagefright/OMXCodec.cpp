@@ -2523,6 +2523,9 @@ void OMXCodec::onEvent(OMX_EVENTTYPE event, OMX_U32 data1, OMX_U32 data2) {
             CODEC_LOGE("ERROR(0x%08lx, %ld)", data1, data2);
 
             setState(ERROR);
+#ifdef OMAP_ENHANCEMENT
+           CHECK_NE(data1, OMX_ErrorHardware);
+#endif
             break;
         }
 
@@ -3328,6 +3331,9 @@ bool OMXCodec::drainInputBuffer(BufferInfo *info) {
 
     if (err != OK) {
         setState(ERROR);
+#ifdef OMAP_ENHANCEMENT
+        CHECK_NE(err, (status_t)UNKNOWN_ERROR);
+#endif
         return false;
     }
 
@@ -3376,6 +3382,9 @@ void OMXCodec::fillOutputBuffer(BufferInfo *info) {
         CODEC_LOGE("fillBuffer failed w/ error 0x%08x", err);
 
         setState(ERROR);
+#ifdef OMAP_ENHANCEMENT
+        CHECK_NE(err, (status_t)UNKNOWN_ERROR);
+#endif
         return;
     }
 
