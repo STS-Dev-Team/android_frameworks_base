@@ -424,6 +424,13 @@ class ServerThread extends Thread {
                 reportWtf("starting DeviceStorageMonitor service", e);
             }
 
+	    try {
+		Slog.i(TAG, "starting SUPL Service (SystemServer)");
+		ServiceManager.addService("SUPL_SERVICE",SUPLService.getInstance(context));
+	    } catch (Throwable e) {
+		Slog.e(TAG,"===>>> Failure installing SUPL Service", e);
+	    }
+
             try {
                 Slog.i(TAG, "Location Manager");
                 location = new LocationManagerService(context);
