@@ -142,6 +142,9 @@ static const CodecInfo kDecoderInfo[] = {
     { MEDIA_MIMETYPE_VIDEO_AVC, "OMX.SEC.AVC.Decoder" },
     { MEDIA_MIMETYPE_VIDEO_AVC, "OMX.google.h264.decoder" },
     { MEDIA_MIMETYPE_VIDEO_AVC, "OMX.google.avc.decoder" },
+#ifdef OMAP_ENHANCEMENT
+    { MEDIA_MIMETYPE_VIDEO_MPEG2, "OMX.TI.DUCATI1.VIDEO.DECODER" },
+#endif
     { MEDIA_MIMETYPE_AUDIO_VORBIS, "OMX.google.vorbis.decoder" },
     { MEDIA_MIMETYPE_VIDEO_VPX, "OMX.google.vpx.decoder" },
     { MEDIA_MIMETYPE_VIDEO_MPEG2, "OMX.Nvidia.mpeg2v.decode" },
@@ -643,9 +646,11 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
                 return ERROR_UNSUPPORTED;
             }
         } else if (meta->findData(kKeyVorbisInfo, &type, &data, &size)) {
+
             addCodecSpecificData(data, size);
 
             CHECK(meta->findData(kKeyVorbisBooks, &type, &data, &size));
+
             addCodecSpecificData(data, size);
         }
     }
@@ -980,6 +985,10 @@ void OMXCodec::setVideoInputFormat(
         compressionFormat = OMX_VIDEO_CodingMPEG4;
     } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_H263, mime)) {
         compressionFormat = OMX_VIDEO_CodingH263;
+#ifdef OMAP_ENHANCEMENT
+    }else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_MPEG2, mime)) {
+        compressionFormat = OMX_VIDEO_CodingMPEG2;
+#endif
     } else {
         LOGE("Not a supported video mime type: %s", mime);
         CHECK(!"Should not be here. Not a supported video mime type.");
@@ -1545,6 +1554,10 @@ void OMXCodec::setComponentRole(
             "video_decoder.mpeg4", "video_encoder.mpeg4" },
         { MEDIA_MIMETYPE_VIDEO_H263,
             "video_decoder.h263", "video_encoder.h263" },
+#ifdef OMAP_ENHANCEMENT
+        { MEDIA_MIMETYPE_VIDEO_MPEG2,
+            "video_decoder.mpeg2", NULL },
+#endif
     };
 
     static const size_t kNumMimeToRole =
@@ -1649,6 +1662,7 @@ bool OMXCodec::isIntermediateState(State state) {
 }
 
 status_t OMXCodec::allocateBuffers() {
+
     status_t err = allocateBuffersOnPort(kPortIndexInput);
 
     if (err != OK) {
@@ -3757,7 +3771,11 @@ void OMXCodec::addCodecSpecificData(const void *data, size_t size) {
 
     specific->mSize = size;
     memcpy(specific->mData, data, size);
-
+#ifdef OMAP_ENHANCEMENT
+    if(!size){
+        return;
+    }
+#endif
     mCodecSpecificData.push(specific);
 }
 
@@ -4558,6 +4576,11 @@ void OMXCodec::initOutputFormat(const sp<MetaData> &inputFormat) {
             } else if (video_def->eCompressionFormat == OMX_VIDEO_CodingAVC) {
                 mOutputFormat->setCString(
                         kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_AVC);
+#ifdef OMAP_ENHANCEMENT
+            } else if (video_def->eCompressionFormat == OMX_VIDEO_CodingMPEG2) {
+                mOutputFormat->setCString(
+                        kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_MPEG2);
+#endif
             } else {
                 CHECK(!"Unknown compression format.");
             }
