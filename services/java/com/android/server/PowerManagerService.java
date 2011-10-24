@@ -1681,7 +1681,7 @@ public class PowerManagerService extends IPowerManager.Stub
             Slog.i(TAG, "Set screen state: " + on, e);
         }
         if (on) {
-            if ((mPowerState & SCREEN_ON_BIT) == 0 || mSkippedScreenOn) {
+            if (((mPowerState & SCREEN_ON_BIT) == 0 || mSkippedScreenOn) && mBootCompleted) {
                 // If we are turning the screen state on, but the screen
                 // light is currently off, then make sure that we set the
                 // light at this point to 0.  This is the case where we are
