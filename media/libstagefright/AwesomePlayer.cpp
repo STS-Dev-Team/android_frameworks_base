@@ -1781,7 +1781,11 @@ void AwesomePlayer::onVideoEvent() {
             mSeeking = SEEK_VIDEO_ONLY;
             mSeekTimeUs = mediaTimeUs;
 
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+            postVideoEvent_l(0);
+#else
             postVideoEvent_l();
+#endif
             return;
         }
 
@@ -1814,7 +1818,20 @@ void AwesomePlayer::onVideoEvent() {
         if (latenessUs < -10000) {
             // We're more than 10ms early.
 
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+            /* We're early, so repost this video event with more
+             * precise timing, but limit it to 100 ms.  This provides
+             * better timing and uses less CPU than the default
+             * behavior (which is to keep trying every 10 ms).
+             */
+            if (-latenessUs > 100000) {
+                postVideoEvent_l(100000);
+            } else {
+                postVideoEvent_l(latenessUs * -1);
+            }
+#else
             postVideoEvent_l(10000);
+#endif
             return;
         }
     }
@@ -1839,7 +1856,24 @@ void AwesomePlayer::onVideoEvent() {
         return;
     }
 
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+    /* By having this at the end, this function is essentially
+     * scheduling itself to be re-called.  The default behavior
+     * [postVideoEvent_l()] is to schedule a call in 10 ms.  However,
+     * at this point the function doesn't know when is the best time
+     * to repost this event.  E.g. at 30 fps (33.3 ms) there will be
+     * 30 ms or 40 ms until the next non-idle call of this function.
+     * This adds extra jitter.
+     *
+     * Therefore we schedule this function to be re-called
+     * immediately, and then a more precise post timing is calculated.
+     * (See above when latenessUs < -10000).  This reduces jitter and
+     * uses less CPU.
+     */
+    postVideoEvent_l(0);
+#else
     postVideoEvent_l();
+#endif
 }
 
 void AwesomePlayer::postVideoEvent_l(int64_t delayUs) {
