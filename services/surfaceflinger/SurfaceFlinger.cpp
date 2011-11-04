@@ -1055,8 +1055,18 @@ void SurfaceFlinger::drawWormhole() const
         Region::const_iterator const end = region.end();
         while (it != end) {
             const Rect& r = *it++;
+#ifdef OMAP_ENHANCEMENT_S3D
+            GLint sy = height - (r.top + r.height());
+            GLint x = r.left;
+            GLsizei w = r.width();
+            GLsizei h = r.height();
+            //child class may need to modify scissoring coords since it may be doing custom drawing
+            modifyCoords(x, sy, w, h);
+            glScissor(x, sy, w, h);
+#else
             const GLint sy = height - (r.top + r.height());
             glScissor(r.left, sy, r.width(), r.height());
+#endif
             glClear(GL_COLOR_BUFFER_BIT);
         }
     } else {
@@ -1758,6 +1768,18 @@ status_t SurfaceFlinger::renderScreenToTexture(DisplayID dpy,
     return renderScreenToTextureLocked(dpy, textureName, uOut, vOut);
 }
 
+#ifdef OMAP_ENHANCEMENT_S3D
+void SurfaceFlinger::drawLayersForScreenshotLocked()
+{
+    const Vector< sp<LayerBase> >& layers(mVisibleLayersSortedByZ);
+    const size_t count = layers.size();
+    for (size_t i=0 ; i<count ; ++i) {
+        const sp<LayerBase>& layer(layers[i]);
+        layer->drawForSreenShot();
+    }
+}
+#endif
+
 status_t SurfaceFlinger::renderScreenToTextureLocked(DisplayID dpy,
         GLuint* textureName, GLfloat* uOut, GLfloat* vOut)
 {
@@ -1803,13 +1825,16 @@ status_t SurfaceFlinger::renderScreenToTextureLocked(DisplayID dpy,
     glEnable(GL_SCISSOR_TEST);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+#ifdef OMAP_ENHANCEMENT_S3D
+    drawLayersForScreenshotLocked();
+#else
     const Vector< sp<LayerBase> >& layers(mVisibleLayersSortedByZ);
     const size_t count = layers.size();
     for (size_t i=0 ; i<count ; ++i) {
         const sp<LayerBase>& layer(layers[i]);
         layer->drawForSreenShot();
     }
-
+#endif
     hw.compositionComplete();
 
     // back to main framebuffer
