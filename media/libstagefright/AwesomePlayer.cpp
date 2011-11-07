@@ -1810,7 +1810,11 @@ void AwesomePlayer::onVideoEvent() {
                     ++mStats.mNumVideoFramesDropped;
                 }
 
+#ifdef OMAP_ENHANCEMENT
+                postVideoEvent_l(0);
+#else
                 postVideoEvent_l();
+#endif
                 return;
             }
         }
