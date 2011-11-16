@@ -74,7 +74,7 @@ static const size_t kHighWaterMarkBytes = 200000;
 
 */
 
-#if OMAP_ENHANCEMENT
+#ifdef OMAP_ENHANCEMENT
 
 /* The AudioHAL uses 40ms buffers for audio.  The audio clock
  * interpolator is optimized for this case.
@@ -161,7 +161,7 @@ struct AwesomeNativeWindowRenderer : public AwesomeRenderer {
             int32_t rotationDegrees)
         : mNativeWindow(nativeWindow) {
         applyRotation(rotationDegrees);
-#if OMAP_ENHANCEMENT
+#ifdef OMAP_ENHANCEMENT
     char value[PROPERTY_VALUE_MAX];
     property_get("debug.video.showfps", value, "0");
     mDebugFps = atoi(value);
@@ -183,7 +183,7 @@ struct AwesomeNativeWindowRenderer : public AwesomeRenderer {
 
         sp<MetaData> metaData = buffer->meta_data();
         metaData->setInt32(kKeyRendered, 1);
-#if OMAP_ENHANCEMENT
+#ifdef OMAP_ENHANCEMENT
         if (mDebugFps != 0) {
           debugShowFPS();
         }
@@ -1219,7 +1219,14 @@ void AwesomePlayer::shutdownVideoDecoder_l() {
         usleep(1000);
     }
     IPCThreadState::self()->flushCommands();
-    LOGV("video decoder shutdown completed");
+
+#ifdef OMAP_ENHANCEMENT
+    if (mDebugFps != 0) {
+        LOGD("video decoder shutdown completed");
+    }
+#else
+     LOGV("video decoder shutdown completed");
+#endif
 }
 
 status_t AwesomePlayer::setNativeWindow_l(const sp<ANativeWindow> &native) {
@@ -1793,8 +1800,15 @@ void AwesomePlayer::onVideoEvent() {
                 && mAudioPlayer != NULL
                 && mAudioPlayer->getMediaTimeMapping(
                     &realTimeUs, &mediaTimeUs)) {
+#ifdef OMAP_ENHANCEMENT
+            if (mDebugFps != 0) {
+                LOGD("we're much too late (%.2f secs), video skipping ahead",
+                      latenessUs / 1E6);
+            }
+#else
             LOGI("we're much too late (%.2f secs), video skipping ahead",
                  latenessUs / 1E6);
+#endif
 
             mVideoBuffer->release();
             mVideoBuffer = NULL;
@@ -1826,9 +1840,17 @@ void AwesomePlayer::onVideoEvent() {
             if (!(mFlags & SLOW_DECODER_HACK)
                     || mSinceLastDropped > FRAME_DROP_FREQ)
             {
+#ifdef OMAP_ENHANCEMENT
+                if (mDebugFps != 0) {
+                    LOGD("we're late by %lld us (%.2f secs) dropping "
+                         "one after %d frames",
+                          latenessUs, latenessUs / 1E6, mSinceLastDropped);
+                }
+#else
                 LOGV("we're late by %lld us (%.2f secs) dropping "
                      "one after %d frames",
                      latenessUs, latenessUs / 1E6, mSinceLastDropped);
+#endif
 
                 mSinceLastDropped = 0;
                 mVideoBuffer->release();
