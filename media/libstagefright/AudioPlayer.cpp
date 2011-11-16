@@ -501,13 +501,13 @@ int64_t AudioPlayer::getRealTimeUs() {
 
     //Take care of first time read in case no frame has returned
     if(mRealTimeInterpolation ==0){
-        ALOGV("reset %lld",mRealTimeInterpolation);
+        LOGV("reset %lld",mRealTimeInterpolation);
         mRealTimeInterpolation = GetSystemTimeuSec();
         deltaFromPosting = 0;
     } else {
         //Fetch the delta time from the last time we got the audio
         //frame completion. We are only intereseted in delata
-        ALOGV("mRealTimeInterpolation %lld = %lld - %lld",
+        LOGV("mRealTimeInterpolation %lld = %lld - %lld",
           ((int64_t)GetSystemTimeuSec()) - mRealTimeInterpolation,
           ((int64_t)GetSystemTimeuSec()), mRealTimeInterpolation);
 
@@ -521,7 +521,7 @@ int64_t AudioPlayer::getRealTimeUs() {
         return realtime;
     }
 
-    ALOGV("IPT %lld",deltaFromPosting/1000);
+    LOGV("IPT %lld",deltaFromPosting/1000);
     return realtime + deltaFromPosting;
 #else
     return getRealTimeUsLocked();
