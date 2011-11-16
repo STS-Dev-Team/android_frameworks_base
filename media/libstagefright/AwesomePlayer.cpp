@@ -76,6 +76,13 @@ static const size_t kHighWaterMarkBytes = 200000;
 
 #if OMAP_ENHANCEMENT
 
+/* The AudioHAL uses 40ms buffers for audio.  The audio clock
+ * interpolator is optimized for this case.
+ */
+#define AUDIOHAL_BUFSIZE_USECS 40000
+#define AUDIOHAL_BUF_TOLERANCE_USECS 5000
+#define AUDIOHAL_BUFSIZE_THRESHOLD (AUDIOHAL_BUFSIZE_USECS + AUDIOHAL_BUF_TOLERANCE_USECS)
+
 static int mDebugFps = 0;
 static void debugShowFPS()
 {
@@ -1764,7 +1771,21 @@ void AwesomePlayer::onVideoEvent() {
     if (wasSeeking == NO_SEEK) {
         // Let's display the first frame after seeking right away.
 
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+        int64_t nowUs = ts->getRealTimeUs();
+        const int64_t seek_tolerance = 2 * AUDIOHAL_BUFSIZE_USECS + AUDIOHAL_BUF_TOLERANCE_USECS; /* Typ. 85 ms */
+        if ((mTimeSourceDeltaUs < -seek_tolerance) || (mTimeSourceDeltaUs > seek_tolerance)) {
+            /* mTimeSourceDeltaUs compares the video time to the
+             * "media" time to check alignment.  Since this is simply
+             * the read pointer for the media, it's usually irrelevent
+             * to A/V sync.  However, if there is a seek in the video
+             * then this is our only way to catch it.
+             */
+            nowUs -= mTimeSourceDeltaUs;
+        }
+#else
         int64_t nowUs = ts->getRealTimeUs() - mTimeSourceDeltaUs;
+#endif
 
         int64_t latenessUs = nowUs - timeUs;
 
@@ -1789,7 +1810,15 @@ void AwesomePlayer::onVideoEvent() {
             return;
         }
 
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+        /* Since AudioHAL is using a fixed buffer size (typ. 40ms), we
+         * can't possibly achieve better timing.  The previous value
+         * of 40000 is based on performance with 20ms buffers.
+         */
+        if (latenessUs > AUDIOHAL_BUFSIZE_THRESHOLD) {
+#else
         if (latenessUs > 40000) {
+#endif
             // We're more than 40ms late.
             LOGV("we're late by %lld us (%.2f secs)",
                  latenessUs, latenessUs / 1E6);

@@ -113,7 +113,9 @@ private:
     AudioPlayer(const AudioPlayer &);
     AudioPlayer &operator=(const AudioPlayer &);
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+    size_t mFramesPostedOnLastFillBufferCall;
     int64_t mRealTimeInterpolation;
+    int64_t mRealTimeLineUp;
     int64_t GetSystemTimeuSec();
 #endif
 };
