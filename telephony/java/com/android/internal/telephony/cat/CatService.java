@@ -103,8 +103,7 @@ public class CatService extends Handler implements AppInterface {
     /* Intentionally private for singleton */
     private CatService(CommandsInterface ci, IccRecords ir, Context context,
             IccFileHandler fh, IccCard ic) {
-        if (ci == null || ir == null || context == null || fh == null
-                || ic == null) {
+        if (ci == null || context == null) {
             throw new NullPointerException(
                     "Service: Input parameters must not be null");
         }
@@ -125,7 +124,10 @@ public class CatService extends Handler implements AppInterface {
 
         // Register for SIM ready event.
         ic.registerForReady(this, MSG_ID_SIM_READY, null);
-        mIccRecords.registerForRecordsLoaded(this, MSG_ID_ICC_RECORDS_LOADED, null);
+        if (ir != null) {
+            // Register for SIM ready event
+            mIccRecords.registerForRecordsLoaded(this, MSG_ID_ICC_RECORDS_LOADED, null);
+        }
 
         // Check if STK application is availalbe
         mStkAppInstalled = isStkAppInstalled();
@@ -577,9 +579,16 @@ public class CatService extends Handler implements AppInterface {
                 // re-Register for SIM ready event.
                 mIccRecords.registerForRecordsLoaded(sInstance, MSG_ID_ICC_RECORDS_LOADED, null);
                 CatLog.d(sInstance, "sr changed reinitialize and return current sInstance");
-            } else {
-                CatLog.d(sInstance, "Return current sInstance");
             }
+            if (fh != null) {
+                CatLog.d(sInstance, "Reinitialize the Service with new IccFilehandler");
+                IconLoader mIconLoader = IconLoader.getInstance(null,null);
+                if (mIconLoader != null) {
+                    mIconLoader.updateIccFileHandler(fh);
+                }
+            }
+
+            CatLog.d(sInstance, "Return current sInstance");
             return sInstance;
         }
     }
