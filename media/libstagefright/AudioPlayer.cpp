@@ -39,7 +39,189 @@
 #define AUDIOHAL_BUFSIZE_USECS 40000
 #define AUDIOHAL_BUF_TOLERANCE_USECS 5000
 #define AUDIOHAL_BUFSIZE_THRESHOLD (AUDIOHAL_BUFSIZE_USECS + AUDIOHAL_BUF_TOLERANCE_USECS)
-#endif
+
+namespace omap_enhancement
+{
+
+    /** Implements and audio clock interpolator with elastic time.
+     *
+     * This device was inspired by the paper "Using a DLL to Filter
+     * Time" (F. Adriaensen, 2005).[1] It is intended to be used in an
+     * audio callback.  post_buffer() should be called at the
+     * beginning of the callback.  The algorithm predicts when the
+     * next callback will be and scales time to try and meet that.
+     *
+     * [1]  http://kokkinizita.linuxaudio.org/papers/usingdll.pdf
+     */
+    class TimeInterpolator
+    {
+    public:
+        TimeInterpolator();
+        ~TimeInterpolator();
+
+        int64_t get_system_usecs();
+        int64_t get_stream_usecs();
+        void post_buffer(int64_t frame_usecs);
+        void reset(int64_t media_time = 0);
+        void pause();
+        void resume();
+        int64_t usecs_queued() {
+            return m_queued;
+        }
+
+    private:
+        /* All time variables are in microseconds (usecs). */
+        double m_Tf;      /* time scaling factor */
+        int64_t m_t0;     /* time measured from here (epoch) */
+        int64_t m_t1;     /* estimated time of next callback */
+        int64_t m_pos0;   /* media position at t0 */
+        int64_t m_queued; /* amount of media queued for next callback */
+        pthread_mutex_t m_mutex;
+        int64_t m_last;   /* the last timestamp reported to anyone */
+    }; // class TimeInterpolator
+
+
+    TimeInterpolator::TimeInterpolator()
+    {
+        pthread_mutex_init(&m_mutex, 0);
+        reset();
+    }
+
+    TimeInterpolator::~TimeInterpolator()
+    {
+    }
+
+    void TimeInterpolator::reset(int64_t media_time)
+    {
+        pthread_mutex_lock(&m_mutex);
+        m_last = media_time;
+        m_pos0 = media_time;
+        m_queued = 0;
+        m_t0 = get_system_usecs();
+        m_t1 = m_t0 + AUDIOHAL_BUFSIZE_USECS;
+        m_Tf = 1.0;
+        pthread_mutex_unlock(&m_mutex);
+    }
+
+    void TimeInterpolator::pause()
+    {
+    }
+
+    void TimeInterpolator::resume()
+    {
+        pthread_mutex_lock(&m_mutex);
+        m_pos0 += m_queued;
+        m_last = m_pos0;
+        m_queued = 0;
+        m_t0 = get_system_usecs();
+        m_t1 = m_t0 + AUDIOHAL_BUFSIZE_USECS;
+        m_Tf = 1.0;
+        pthread_mutex_unlock(&m_mutex);
+    }
+
+    int64_t TimeInterpolator::get_system_usecs()
+    {
+        struct timespec tv;
+        clock_gettime(CLOCK_MONOTONIC, &tv);
+        return ((int64_t)tv.tv_sec * 1000000L + tv.tv_nsec / 1000);
+    }
+
+    /* t = m_pos0 + (now - m_t0) * m_Tf
+     */
+    int64_t TimeInterpolator::get_stream_usecs()
+    {
+        int64_t now;
+        double dt;
+        int64_t t_media;
+        pthread_mutex_lock(&m_mutex);
+
+        /* if m_queued == 0, we're starting up or paused */
+        if (!m_queued) {
+            t_media = m_pos0;
+            goto end;
+        }
+
+        now = get_system_usecs();
+        dt = m_Tf * double(now - m_t0);
+        if (dt < 0.0) dt = 0.0;
+        t_media = m_pos0 + int64_t(dt);
+        if (t_media < m_last) LOGI("time is rewinding: %lld", t_media - m_last);
+        m_last = t_media;
+
+    end:
+        pthread_mutex_unlock(&m_mutex);
+        return t_media;
+    }
+
+    /* e = now - m_t1  (feedback)
+     * m_t0 = now  (or t1, or valued based on m_last, if later)
+     * m_t1 = now + frame_usecs - e/2
+     * m_Tf = frame_usecs / (m_t1 - m_t0)
+     *
+     * For sanity/stability:
+     * m_Tf is limited to the range [.9, 1.1] for sanity.
+     * e is limited to the range [-frame_usecs, frame_usecs]
+     */
+    void TimeInterpolator::post_buffer(int64_t frame_usecs)
+    {
+        int64_t now;    /* The current system timestamp */
+        int64_t dt;     /* The actual time since m_t0 */
+        int64_t e = 0;  /* error value for our t1 estimation */
+        int64_t last;   /* used to keep us monotonic */
+        bool aggregate_buffers = false; /* see below */
+
+        pthread_mutex_lock(&m_mutex);
+        now = get_system_usecs();
+        dt = now - m_t0;
+        /* if m_queued == 0 then we are ramping up or paused */
+        if (m_queued && (dt < (frame_usecs/4))) aggregate_buffers = true;
+
+        if (!aggregate_buffers) {
+            /* Predict the next callback.
+             *
+             * e tests how close our last prediction was, and is used
+             * as a feedback for our next prediction.
+             */
+            last = m_t0 + int64_t((m_last - m_pos0)/m_Tf);
+            last = 0;
+            m_t0 = (now > last) ? now : last;
+            e = now - m_t1;
+            if (e > frame_usecs)
+                e = frame_usecs;
+            else if (-e > frame_usecs)
+                e = -frame_usecs;
+            m_t1 = now + frame_usecs - e;
+            if (m_t1 - m_t0 < 1000) m_t1 = m_t0 + 1000;
+            m_Tf = double(frame_usecs) / double(m_t1 - m_t0);
+            if (m_Tf > 1.1)
+                m_Tf = 1.1;
+            else if (m_Tf < .9)
+                m_Tf = .9;
+
+            m_pos0 += m_queued;
+            m_queued = frame_usecs;
+        } else {
+            /* If aggregate_buffers == true, then this call is very
+             * close in time to the previous call.  Therefore we will
+             * combine the data with the previous call(s) and treat
+             * them as if they are one.
+             */
+            m_queued += frame_usecs;
+            m_t1 += frame_usecs;
+            m_Tf = double(m_queued) / double(m_t1 - m_t0);
+            if (m_Tf > 1.1)
+                m_Tf = 1.1;
+            else if (m_Tf < .9)
+                m_Tf = .9;
+        }
+        assert( m_t1 > m_t0 );
+        pthread_mutex_unlock(&m_mutex);
+    }
+
+} /* namespace omap_enhancement */
+
+
+#endif /*  defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4) */
 
 namespace android {
 
@@ -64,7 +246,7 @@ AudioPlayer::AudioPlayer(
       mAudioSink(audioSink),
       mObserver(observer) {
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-    mFramesPostedOnLastFillBufferCall = 0;
+    mRealTimeInterpolator = new omap_enhancement::TimeInterpolator;
 #endif
 }
 
@@ -72,6 +254,9 @@ AudioPlayer::~AudioPlayer() {
     if (mStarted) {
         reset();
     }
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+    delete mRealTimeInterpolator;
+#endif
 }
 
 void AudioPlayer::setSource(const sp<MediaSource> &source) {
@@ -84,8 +269,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
     CHECK(mSource != NULL);
 
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-    mRealTimeInterpolation = GetSystemTimeuSec();
-    mRealTimeLineUp = 0;
+    mRealTimeInterpolator->reset();
 #endif
 
 
@@ -210,14 +394,16 @@ void AudioPlayer::pause(bool playPendingSamples) {
             mAudioTrack->pause();
         }
     }
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+    mRealTimeInterpolator->pause();
+#endif
 }
 
 void AudioPlayer::resume() {
     CHECK(mStarted);
 
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-    mRealTimeInterpolation = GetSystemTimeuSec();
-    mRealTimeLineUp = 0;
+    mRealTimeInterpolator->resume();
 #endif
 
     if (mAudioSink.get() != NULL) {
@@ -275,7 +461,7 @@ void AudioPlayer::reset() {
     mFinalStatus = OK;
     mStarted = false;
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-    mFramesPostedOnLastFillBufferCall = 0;
+    mRealTimeInterpolator->reset();
 #endif
 }
 
@@ -351,64 +537,8 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
     int64_t postEOSDelayUs = 0;
 
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-    {
-        int64_t t, clock_dt, frame_dt;
-        bool aggregate_buffers = false;
-
-        Mutex::Autolock autoLock(mLock);
-        t = GetSystemTimeuSec();
-        clock_dt = t - mRealTimeInterpolation;
-        frame_dt = (mFramesPostedOnLastFillBufferCall * 1000000) / mSampleRate;
-        if (clock_dt < (frame_dt/2)) {
-            /* If fillBuffer() is called twice (or more) in quick
-             * succession, we will treat all the calls as though they
-             * were one single call... and add the samples to
-             * mFramesPostedOnLastFillBufferCall
-             */
-            aggregate_buffers = true;
-        } else {
-            /* Post the frames from the previous buffer.
-             */
-            mNumFramesPlayed += mFramesPostedOnLastFillBufferCall;
-
-            /*
-             * Update the interpolation time base.  If we're within
-             * the "acceptible jitter" boundary, then we assume that
-             * the jitter is due to scheduling/quantization errors and
-             * update the time based on the monotonic clock.
-             *
-             * If we're outside the boundary, the clock is either
-             * immediately advanced, or "slowed down" using the
-             * mRealTimeLineUp mechanism.
-             */
-            const int64_t expected_jitter = AUDIOHAL_BUFSIZE_THRESHOLD;
-            int64_t rt = frame_dt + mRealTimeInterpolation;
-            clock_dt = rt - t;
-            if (clock_dt < 0) clock_dt = -clock_dt;
-            if (clock_dt <= expected_jitter) {
-                mRealTimeInterpolation = rt;
-            } else if (t < rt) {
-                LOGI("Audio clock interpolator is out of jitter spec (%ld > %ld), slowing down to line up",
-                      (long)clock_dt, (long)expected_jitter);
-                mRealTimeInterpolation = rt;
-                mRealTimeLineUp = clock_dt;
-            } else {
-                LOGI("Audio clock interpolator is out of jitter spec (%ld > %ld), advancing interpolation base",
-                      (long)clock_dt, (long)expected_jitter);
-                mRealTimeInterpolation = t;
-                mRealTimeLineUp = 0;
-            }
-            mPositionTimeRealUs =
-                ((mNumFramesPlayed + mFramesPostedOnLastFillBufferCall / mFrameSize) * 1000000)
-                    / mSampleRate;
-        }
-
-        if (aggregate_buffers) {
-            mFramesPostedOnLastFillBufferCall += size / mFrameSize;
-        } else {
-            mFramesPostedOnLastFillBufferCall = size / mFrameSize;
-        }
-    }
+    mRealTimeInterpolator->post_buffer( ((size / mFrameSize) * 1000000) / mSampleRate );
+    mPositionTimeRealUs = mRealTimeInterpolator->get_stream_usecs();
 #endif // defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
 
     size_t size_done = 0;
@@ -450,8 +580,7 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
                 mFirstBuffer = NULL;
                 err = mFirstBufferResult;
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-                mRealTimeInterpolation = GetSystemTimeuSec();
-                mRealTimeLineUp = 0;
+                mRealTimeInterpolator->reset();
 #endif
 
                 mIsFirstBuffer = false;
@@ -558,69 +687,10 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
     return size_done;
 }
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-//Function to get the system time
-int64_t AudioPlayer::GetSystemTimeuSec(){
-    struct timespec tv;
-    clock_gettime(CLOCK_MONOTONIC, &tv);
-    return ((int64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000);
-}
-#endif
-
 int64_t AudioPlayer::getRealTimeUs() {
     Mutex::Autolock autoLock(mLock);
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-    int64_t realtime = getRealTimeUsLocked();
-
-    //We need to interpolate the time to resolution of 1msec
-    //to get precise posting of buffers
-    int64_t deltaFromPosting = 0;
-
-    //Take care of first time read in case no frame has returned
-    if(mRealTimeInterpolation ==0){
-        LOGV("reset %lld",mRealTimeInterpolation);
-        mRealTimeInterpolation = GetSystemTimeuSec();
-        deltaFromPosting = 0;
-    } else {
-        //Fetch the delta time from the last time we got the audio
-        //frame completion. We are only intereseted in delata
-        LOGV("mRealTimeInterpolation %lld = %lld - %lld",
-          ((int64_t)GetSystemTimeuSec()) - mRealTimeInterpolation,
-          ((int64_t)GetSystemTimeuSec()), mRealTimeInterpolation);
-
-        deltaFromPosting =  GetSystemTimeuSec() - mRealTimeInterpolation;
-    }
-
-    //if audio hangs we should drop frames. We will wait worst case of
-    //1 Sec
-    if (deltaFromPosting > 1000000) {
-        LOGE("To late ... there is a hang %lld",deltaFromPosting);
-        return realtime;
-    } else if (deltaFromPosting < 0) {
-        // Otherwise... keep the jitter semi-monotonic
-        return realtime;
-    }
-
-    if (mRealTimeLineUp) {
-        /* Eating up usecs if the interpolation estimate got too far
-         * ahead.  This is preferred to providing an earlier time
-         * value than a previous call to this function.
-         */
-        if (deltaFromPosting >= mRealTimeLineUp) {
-            LOGI("PING %ld", (long)deltaFromPosting);
-            deltaFromPosting -= mRealTimeLineUp;
-            mRealTimeLineUp = 0;
-        } else {
-            LOGI("PONG %ld", (long)deltaFromPosting);
-            mRealTimeLineUp -= deltaFromPosting;
-            deltaFromPosting = 0;
-        }
-        if (mRealTimeLineUp < 0)
-            mRealTimeLineUp = 0;
-    }
-
-    LOGV("IPT %lld",deltaFromPosting/1000);
-    return realtime + deltaFromPosting;
+    return mRealTimeInterpolator->get_stream_usecs() - mLatencyUs;
 #else
     return getRealTimeUsLocked();
 #endif
@@ -659,12 +729,19 @@ bool AudioPlayer::getMediaTimeMapping(
     *realtime_us = mPositionTimeRealUs;
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
     /* AwesomePlayer is trying to use the media read pointer as an
-     * accurate indication of the "audio time."  Since audio time is
-     * now based on the end of the previous buffer, we need to
-     * discount that.
+     * accurate indication of the "audio time" as an attempt to check
+     * that the file pointer isn't too far from the audio clock
+     * (getRealTimeUs()).  Since we are handling this internally, we
+     * return the same value as long as we are within expected limits.
      */
-    int64_t segment_time = (mFramesPostedOnLastFillBufferCall * 1000000) / mSampleRate;
-    *mediatime_us = mPositionTimeMediaUs - segment_time;
+    int64_t now = mRealTimeInterpolator->get_stream_usecs();
+    int64_t audio_queued = mRealTimeInterpolator->usecs_queued();
+    if ((mPositionTimeMediaUs <= now + audio_queued)
+        && (mPositionTimeMediaUs >= now) ) {
+        *mediatime_us = now;
+    } else {
+        *mediatime_us = mPositionTimeMediaUs;
+    }
 #else
     *mediatime_us = mPositionTimeMediaUs;
 #endif
@@ -680,7 +757,7 @@ status_t AudioPlayer::seekTo(int64_t time_us) {
     mReachedEOS = false;
     mSeekTimeUs = time_us;
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-    mFramesPostedOnLastFillBufferCall = 0;
+    mRealTimeInterpolator->reset(time_us);
 #endif
 
     // Flush resets the number of played frames

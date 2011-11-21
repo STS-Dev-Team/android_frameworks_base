@@ -23,6 +23,12 @@
 #include <media/stagefright/TimeSource.h>
 #include <utils/threads.h>
 
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+namespace omap_enhancement {
+    class TimeInterpolator;
+}
+#endif
+
 namespace android {
 
 class MediaSource;
@@ -113,10 +119,7 @@ private:
     AudioPlayer(const AudioPlayer &);
     AudioPlayer &operator=(const AudioPlayer &);
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-    size_t mFramesPostedOnLastFillBufferCall;
-    int64_t mRealTimeInterpolation;
-    int64_t mRealTimeLineUp;
-    int64_t GetSystemTimeuSec();
+    omap_enhancement::TimeInterpolator *mRealTimeInterpolator;
 #endif
 };
 

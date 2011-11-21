@@ -1780,7 +1780,7 @@ void AwesomePlayer::onVideoEvent() {
 
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
         int64_t nowUs = ts->getRealTimeUs();
-        const int64_t seek_tolerance = 2 * AUDIOHAL_BUFSIZE_USECS + AUDIOHAL_BUF_TOLERANCE_USECS; /* Typ. 85 ms */
+        const int64_t seek_tolerance = 3 * AUDIOHAL_BUFSIZE_USECS + AUDIOHAL_BUF_TOLERANCE_USECS; /* Typ. 125 ms */
         if ((mTimeSourceDeltaUs < -seek_tolerance) || (mTimeSourceDeltaUs > seek_tolerance)) {
             /* mTimeSourceDeltaUs compares the video time to the
              * "media" time to check alignment.  Since this is simply
