@@ -68,6 +68,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+import android.os.SystemProperties;
+
 /**
  * All information we are collecting about things that can happen that impact
  * battery life.  All times are represented in microseconds except where indicated
@@ -5735,7 +5737,12 @@ public final class BatteryStatsImpl extends BatteryStats {
                             .readNetworkStatsDetail().groupedByUid();
                 } catch (IllegalStateException e) {
                     // log problem and return empty object
+                    if (SystemProperties.OMAP_ENHANCEMENT) {
+                    // Calling Log.wtf() during startService deadlocks ActivityManager
+                    Log.e(TAG, "problem reading network stats", e);
+                    } else {
                     Log.wtf(TAG, "problem reading network stats", e);
+                    }
                     mNetworkDetailCache = new NetworkStats(SystemClock.elapsedRealtime(), 0);
                 }
             }
