@@ -124,8 +124,24 @@ sp<MediaExtractor> MediaExtractor::Create(
 #ifdef OMAP_ENHANCEMENT
     else if(!strcasecmp(mime, MEDIA_MIMETYPE_CONTAINER_ASF)) {
         if(isASFParserAvailable())  {
-            return new ASFExtractor(source);
-        } else {
+            MediaExtractor *ret = new ASFExtractor(source);
+            if (ret == NULL) {
+                LOGE("Failed to create ASFExtractor object");
+                return NULL;
+            }
+
+            /* Reading DRM/WMR property */
+            int32_t bDRM;
+            if (ret->getMetaData()->findInt32(kKeyIsDRM, &bDRM) && bDRM != 0) {
+                LOGE("Content has been protected by encryption (DRM, WMR, etc.) "
+                    "and will not be played.");
+                delete ret;
+                return NULL;
+            }
+
+            return ret;
+        }
+        else {
             return NULL;
         }
     }
