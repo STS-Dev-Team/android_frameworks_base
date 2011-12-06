@@ -80,6 +80,7 @@ static const size_t kHighWaterMarkBytes = 200000;
  * interpolator is optimized for this case.
  */
 #define AUDIOHAL_BUFSIZE_USECS 40000
+#define AUDIOHAL_BUFSIZE_NBUFS 4
 #define AUDIOHAL_BUF_TOLERANCE_USECS 5000
 #define AUDIOHAL_BUFSIZE_THRESHOLD (AUDIOHAL_BUFSIZE_USECS + AUDIOHAL_BUF_TOLERANCE_USECS)
 
@@ -1792,7 +1793,8 @@ void AwesomePlayer::onVideoEvent() {
 
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
         int64_t nowUs = ts->getRealTimeUs();
-        const int64_t seek_tolerance = 3 * AUDIOHAL_BUFSIZE_USECS + AUDIOHAL_BUF_TOLERANCE_USECS; /* Typ. 125 ms */
+        const int64_t seek_tolerance = AUDIOHAL_BUFSIZE_NBUFS * AUDIOHAL_BUFSIZE_USECS +
+            AUDIOHAL_BUF_TOLERANCE_USECS; /* Typ. 165 ms */
         if ((mTimeSourceDeltaUs < -seek_tolerance) || (mTimeSourceDeltaUs > seek_tolerance)) {
             /* mTimeSourceDeltaUs compares the video time to the
              * "media" time to check alignment.  Since this is simply
