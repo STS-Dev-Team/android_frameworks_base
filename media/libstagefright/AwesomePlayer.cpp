@@ -80,13 +80,20 @@ static const size_t kHighWaterMarkBytes = 200000;
 
 #ifdef OMAP_ENHANCEMENT
 
-/* The AudioHAL uses 40ms buffers for audio.  The audio clock
- * interpolator is optimized for this case.
+/* The audio latency is typically 2x the buffer size set in the
+ * AudioHAL.  The value here is only used as a default value in case
+ * AudioPlayer::latency() returns 0 or a degenerate value.  A similar
+ * value is defined in AudioPlayer.cpp.  They should match, but they
+ * do not need to match.
+ *
+ * For OMAP4, The AudioHAL defines the hardware buffer at 4 x 40ms.
  */
-#define AUDIOHAL_BUFSIZE_USECS 40000
-#define AUDIOHAL_BUFSIZE_NBUFS 4
-#define AUDIOHAL_BUF_TOLERANCE_USECS 5000
-#define AUDIOHAL_BUFSIZE_THRESHOLD (AUDIOHAL_BUFSIZE_USECS + AUDIOHAL_BUF_TOLERANCE_USECS)
+/* 320 ms */
+#define DEFAULT_AUDIO_LATENCY (40000 * 4 * 2)
+
+#endif /* OMAP_ENHANCEMENT */
+
+#ifdef OMAP_ENHANCEMENT
 
 static int mDebugFps = 0;
 static void debugShowFPS()
@@ -1837,8 +1844,14 @@ void AwesomePlayer::onVideoEvent() {
 
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
         int64_t nowUs = ts->getRealTimeUs();
-        const int64_t seek_tolerance = AUDIOHAL_BUFSIZE_NBUFS * AUDIOHAL_BUFSIZE_USECS +
-            AUDIOHAL_BUF_TOLERANCE_USECS; /* Typ. 165 ms */
+        int64_t seek_tolerance;
+        if (ts == mAudioPlayer) {
+            seek_tolerance = (mAudioPlayer->latency() * 3) / 2;
+        } else {
+            LOGV("Using default seek_tolerance ts=0x%08xd mAudioPlayer=0x%08x",
+                 (unsigned)ts, (unsigned)mAudioPlayer);
+            seek_tolerance = DEFAULT_AUDIO_LATENCY;
+        }
         if ((mTimeSourceDeltaUs < -seek_tolerance) || (mTimeSourceDeltaUs > seek_tolerance)) {
             /* mTimeSourceDeltaUs compares the video time to the
              * "media" time to check alignment.  Since this is simply
@@ -1846,6 +1859,7 @@ void AwesomePlayer::onVideoEvent() {
              * to A/V sync.  However, if there is a seek in the video
              * then this is our only way to catch it.
              */
+            LOGI("Seek tolerance hit mTimeSourceDeltaUs=%lld seek_tolerance=%lld", mTimeSourceDeltaUs, seek_tolerance);
             nowUs -= mTimeSourceDeltaUs;
         }
 #else
@@ -1882,15 +1896,7 @@ void AwesomePlayer::onVideoEvent() {
             return;
         }
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-        /* Since AudioHAL is using a fixed buffer size (typ. 40ms), we
-         * can't possibly achieve better timing.  The previous value
-         * of 40000 is based on performance with 20ms buffers.
-         */
-        if (latenessUs > AUDIOHAL_BUFSIZE_THRESHOLD) {
-#else
         if (latenessUs > 40000) {
-#endif
             // We're more than 40ms late.
             LOGV("we're late by %lld us (%.2f secs)",
                  latenessUs, latenessUs / 1E6);

@@ -120,6 +120,8 @@ private:
     AudioPlayer &operator=(const AudioPlayer &);
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
     omap_enhancement::TimeInterpolator *mRealTimeInterpolator;
+public:
+    int64_t latency() const;
 #endif
 };
 
