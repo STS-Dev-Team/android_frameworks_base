@@ -148,6 +148,9 @@ SurfaceTexture::SurfaceTexture(GLuint tex, bool allowSynchronousMode,
     mNextCrop.makeInvalid();
     memcpy(mCurrentTransformMatrix, mtxIdentity,
             sizeof(mCurrentTransformMatrix));
+#ifdef OMAP_ENHANCEMENT
+    mCurrentLayout = mNextLayout = NATIVE_WINDOW_BUFFERS_LAYOUT_PROGRESSIVE;
+#endif
 }
 
 SurfaceTexture::~SurfaceTexture() {
@@ -596,6 +599,9 @@ status_t SurfaceTexture::queueBuffer(int buf, int64_t timestamp,
         mSlots[buf].mTimestamp = timestamp;
         mFrameCounter++;
         mSlots[buf].mFrameNumber = mFrameCounter;
+#ifdef OMAP_ENHANCEMENT
+        mSlots[buf].mLayout = mNextLayout;
+#endif
 
         mDequeueCondition.signal();
 
@@ -657,6 +663,19 @@ status_t SurfaceTexture::setTransform(uint32_t transform) {
     mNextTransform = transform;
     return OK;
 }
+
+#ifdef OMAP_ENHANCEMENT
+status_t SurfaceTexture::setLayout(uint32_t layout) {
+    ST_LOGV("SurfaceTexture::setLayout");
+    Mutex::Autolock lock(mMutex);
+    if (mAbandoned) {
+        ST_LOGE("setLayout: SurfaceTexture has been abandoned!");
+        return NO_INIT;
+    }
+    mNextLayout = layout;
+    return OK;
+}
+#endif
 
 status_t SurfaceTexture::connect(int api,
         uint32_t* outWidth, uint32_t* outHeight, uint32_t* outTransform) {
@@ -832,6 +851,9 @@ status_t SurfaceTexture::updateTexImage() {
         mCurrentTransform = mSlots[buf].mTransform;
         mCurrentScalingMode = mSlots[buf].mScalingMode;
         mCurrentTimestamp = mSlots[buf].mTimestamp;
+#ifdef OMAP_ENHANCEMENT
+        mCurrentLayout = mSlots[buf].mLayout;
+#endif
         computeCurrentTransformMatrix();
 
         // Now that we've passed the point at which failures can happen,
@@ -1081,6 +1103,13 @@ bool SurfaceTexture::isSynchronousMode() const {
     Mutex::Autolock lock(mMutex);
     return mSynchronousMode;
 }
+
+#ifdef OMAP_ENHANCEMENT
+uint32_t SurfaceTexture::getCurrentLayout() const {
+    Mutex::Autolock lock(mMutex);
+    return mCurrentLayout;
+}
+#endif
 
 int SurfaceTexture::query(int what, int* outValue)
 {
