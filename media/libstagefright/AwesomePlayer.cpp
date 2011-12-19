@@ -30,6 +30,10 @@
 #include "include/MPEG2TSExtractor.h"
 #include "include/WVMExtractor.h"
 
+#ifdef OMAP_ENHANCEMENT
+#include "include/ASFExtractor.h"
+#endif
+
 #include "timedtext/TimedTextPlayer.h"
 
 #include <binder/IPCThreadState.h>
@@ -239,6 +243,10 @@ AwesomePlayer::AwesomePlayer()
       mDisplayHeight(0),
       mFlags(0),
       mExtractorFlags(0),
+#ifdef OMAP_ENHANCEMENT
+      mExtractorType(NULL),
+      mExtractor(NULL),
+#endif
       mVideoBuffer(NULL),
       mDecryptHandle(NULL),
       mLastVideoTimeUs(-1),
@@ -272,6 +280,9 @@ AwesomePlayer::~AwesomePlayer() {
     reset();
 
     mClient.disconnect();
+#ifdef OMAP_ENHANCEMENT
+    mExtractor.clear();
+#endif
 }
 
 void AwesomePlayer::cancelPlayerEvents(bool keepNotifications) {
@@ -392,6 +403,17 @@ status_t AwesomePlayer::setDataSource_l(
             notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_UNKNOWN, ERROR_DRM_NO_LICENSE);
         }
     }
+
+#ifdef OMAP_ENHANCEMENT
+    sp<MetaData> fileMetadata = extractor->getMetaData();
+    bool isAvailable = fileMetadata->findCString(kKeyMIMEType, &mExtractorType);
+    if(isAvailable) {
+        LOGV("%s:: ExtractorType %s", __FUNCTION__,  mExtractorType);
+    } else {
+        LOGV("%s:: ExtractorType not available", __FUNCTION__);
+    }
+    mExtractor = extractor;
+#endif
 
     return setDataSource_l(extractor);
 }
@@ -1442,6 +1464,17 @@ status_t AwesomePlayer::initAudioDecoder() {
 
     if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_RAW)) {
         mAudioSource = mAudioTrack;
+#ifdef OMAP_ENHANCEMENT
+    } else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_WMA)) {
+        const char *componentName  = "OMX.ITTIAM.WMA.decode";
+        mAudioSource = OMXCodec::Create(
+        mClient.interface(), mAudioTrack->getFormat(),
+        false,
+        mAudioTrack, componentName);
+        if (mAudioSource == NULL) {
+            LOGE("Failed to create OMX component for WMA codec");
+        }
+#endif
     } else {
         mAudioSource = OMXCodec::Create(
                 mClient.interface(), mAudioTrack->getFormat(),
@@ -2264,6 +2297,18 @@ status_t AwesomePlayer::finishSetDataSource_l() {
             notifyListener_l(MEDIA_ERROR, MEDIA_ERROR_UNKNOWN, ERROR_DRM_NO_LICENSE);
         }
     }
+
+#ifdef OMAP_ENHANCEMENT
+    sp<MetaData> fileMetadata = extractor->getMetaData();
+    bool isAvailable = fileMetadata->findCString(kKeyMIMEType, &mExtractorType);
+    if(isAvailable) {
+        LOGD("%s:: ExtractorType %s", __FUNCTION__,  mExtractorType);
+    }
+    else {
+        LOGE("%s:: ExtractorType not available", __FUNCTION__);
+    }
+    mExtractor = extractor;
+#endif
 
     status_t err = setDataSource_l(extractor);
 

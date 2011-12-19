@@ -27,6 +27,10 @@
 #include "include/FLACExtractor.h"
 #include "include/AACExtractor.h"
 
+#ifdef OMAP_ENHANCEMENT
+#include "include/ASFExtractor.h"
+#endif
+
 #include "matroska/MatroskaExtractor.h"
 
 #include <media/stagefright/foundation/AMessage.h>
@@ -113,6 +117,12 @@ void DataSource::RegisterDefaultSniffers() {
     RegisterSniffer(SniffMP3);
     RegisterSniffer(SniffAAC);
     RegisterSniffer(SniffMPEG2PS);
+
+#ifdef OMAP_ENHANCEMENT
+    if(isASFParserAvailable()) {
+        RegisterSniffer(SniffASF);
+    }
+#endif
 
     char value[PROPERTY_VALUE_MAX];
     if (property_get("drm.service.enabled", value, NULL)

@@ -48,6 +48,9 @@ enum {
     kKeyBitRate           = 'brte',  // int32_t (bps)
     kKeyESDS              = 'esds',  // raw data
     kKeyAVCC              = 'avcc',  // raw data
+#ifdef OMAP_ENHANCEMENT
+    kKeyHdr               = 'hdrd',  // raw data
+#endif
     kKeyD263              = 'd263',  // raw data
     kKeyVorbisInfo        = 'vinf',  // raw data
     kKeyVorbisBooks       = 'vboo',  // raw data
@@ -132,6 +135,9 @@ enum {
 enum {
     kTypeESDS        = 'esds',
     kTypeAVCC        = 'avcc',
+#ifdef OMAP_ENHANCEMENT
+    kTypeHdr         = 'hdrd',
+#endif
     kTypeD263        = 'd263',
 };
 
