@@ -1137,6 +1137,15 @@ typedef struct OMX_STREAMINTERLACEFORMATTYPE {
     OMX_U32 nInterlaceFormats;
 } OMX_STREAMINTERLACEFORMAT;
 
+/**
+ * Structure to enable timestamps in decode order at i/p of decoders.
+ */
+typedef struct OMX_TI_PARAM_TIMESTAMP_IN_DECODE_ORDER {
+        OMX_U32 nSize;
+        OMX_VERSIONTYPE nVersion;
+        OMX_BOOL bEnabled;
+} OMX_TI_PARAM_TIMESTAMP_IN_DECODE_ORDER;
+
 #endif
 
 /** @} */
