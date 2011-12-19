@@ -343,6 +343,10 @@ private:
     OMXCodec(const OMXCodec &);
     OMXCodec &operator=(const OMXCodec &);
 
+#ifdef OMAP_ENHANCEMENT_S3D
+    void handle_extradata(void *data);
+#endif
+
 #ifdef OMAP_ENHANCEMENT
 public:
     status_t setParameter(const String8 &key, const String8 &value);
