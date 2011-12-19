@@ -145,6 +145,7 @@ public class AudioService extends IAudioService.Stub {
     private boolean mMediaServerOk;
 
     private static final String ACTION_FMRx_PLUG = "ti.android.intent.action.FMRx_PLUG";
+    private static final String ACTION_FMTx_PLUG = "ti.android.intent.action.FMTx_PLUG";
 
     private SoundPool mSoundPool;
     private Object mSoundEffectsLock = new Object();
@@ -376,6 +377,7 @@ public class AudioService extends IAudioService.Stub {
         intentFilter.addAction(Intent.ACTION_BOOT_COMPLETED);
         if ( SystemProperties.OMAP_ENHANCEMENT) {
            intentFilter.addAction(ACTION_FMRx_PLUG);
+           intentFilter.addAction(ACTION_FMTx_PLUG);
         }
         intentFilter.addAction(Intent.ACTION_SCREEN_ON);
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
@@ -2577,6 +2579,20 @@ public class AudioService extends IAudioService.Stub {
                                 AudioSystem.DEVICE_STATE_AVAILABLE,"");
                       mConnectedDevices.put( new Integer(AudioSystem.DEVICE_IN_FM_RADIO_RX ), "");
                }
+            } else if ( SystemProperties.OMAP_ENHANCEMENT && action.equals(ACTION_FMTx_PLUG)) {
+                int state = intent.getIntExtra("state",0);
+                Log.i(TAG,"Broadcast Receiver: Got Action_FMTx_PLUG, state ="+state);
+                boolean isConnected =
+                   mConnectedDevices.containsKey(AudioSystem.DEVICE_OUT_FM_RADIO_TX );
+                if (state == 0 && isConnected) {
+                       AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_OUT_FM_RADIO_TX ,
+                                AudioSystem.DEVICE_STATE_UNAVAILABLE,"");
+                       mConnectedDevices.remove(AudioSystem.DEVICE_OUT_FM_RADIO_TX );
+                } else if (state == 1 && !isConnected)  {
+                       AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_OUT_FM_RADIO_TX ,
+                                 AudioSystem.DEVICE_STATE_AVAILABLE,"");
+                       mConnectedDevices.put( new Integer(AudioSystem.DEVICE_OUT_FM_RADIO_TX ), "");
+                }
             } else if (action.equals(Intent.ACTION_USB_ANLG_HEADSET_PLUG)) {
                 int state = intent.getIntExtra("state", 0);
                 Log.v(TAG, "Broadcast Receiver: Got ACTION_USB_ANLG_HEADSET_PLUG, state = "+state);

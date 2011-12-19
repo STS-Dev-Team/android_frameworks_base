@@ -201,6 +201,7 @@ public class AudioSystem
     public static final int DEVICE_OUT_AUX_DIGITAL = 0x400;
     public static final int DEVICE_OUT_ANLG_DOCK_HEADSET = 0x800;
     public static final int DEVICE_OUT_DGTL_DOCK_HEADSET = 0x1000;
+    public static final int DEVICE_OUT_FM_RADIO_TX = 0x2000;
     public static final int DEVICE_OUT_DEFAULT = 0x8000;
     // input devices
     public static final int DEVICE_IN_COMMUNICATION = 0x10000;
