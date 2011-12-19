@@ -109,7 +109,9 @@ public:
 
     virtual     status_t    setMicMute(bool state);
     virtual     bool        getMicMute() const;
-
+#ifdef OMAP_ENHANCEMENT
+    virtual     status_t    setFMRxActive(bool state);
+#endif
     virtual     status_t    setParameters(int ioHandle, const String8& keyValuePairs);
     virtual     String8     getParameters(int ioHandle, const String8& keys);
 
@@ -718,6 +720,9 @@ private:
 
         virtual     float       streamVolume(int stream) const;
         virtual     bool        streamMute(int stream) const;
+#ifdef OMAP_ENHANCEMENT
+        virtual     status_t   setFMRxActive(bool state);
+#endif
 
                     sp<Track>   createTrack_l(
                                     const sp<AudioFlinger::Client>& client,
@@ -772,6 +777,9 @@ private:
         int                             mSuspended;
         int                             mBytesWritten;
         bool                            mMasterMute;
+#ifdef OMAP_ENHANCEMENT
+        bool                            mFmInplay;
+#endif
         SortedVector< wp<Track> >       mActiveTracks;
 
         virtual int             getTrackName_l() = 0;

@@ -1453,6 +1453,17 @@ static int aps_move_effects(void *service, int session,
     return af->moveEffects(session, (int)src_output, (int)dst_output);
 }
 
+#ifdef OMAP_ENHANCEMENT
+static int aps_set_FMRxActive(void *service, bool state)
+{
+    sp<IAudioFlinger> af = AudioSystem::get_audio_flinger();
+    if (af == NULL)
+        return PERMISSION_DENIED;
+
+    return af->setFMRxActive(state);
+}
+#endif
+
 static char * aps_get_parameters(void *service, audio_io_handle_t io_handle,
                                      const char *keys)
 {
@@ -1519,6 +1530,9 @@ namespace {
         stop_tone             : aps_stop_tone,
         set_voice_volume      : aps_set_voice_volume,
         move_effects          : aps_move_effects,
+#ifdef OMAP_ENHANCEMENT
+        set_FMRxActive        : aps_set_FMRxActive,
+#endif
     };
 }; // namespace <unnamed>
 

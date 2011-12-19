@@ -1367,7 +1367,11 @@ AudioFlinger::PlaybackThread::PlaybackThread(const sp<AudioFlinger>& audioFlinge
                                              int id,
                                              uint32_t device)
     :   ThreadBase(audioFlinger, id, device),
-        mMixBuffer(0), mSuspended(0), mBytesWritten(0), mOutput(output),
+        mMixBuffer(0), mSuspended(0), mBytesWritten(0),
+#ifdef OMAP_ENHANCEMENT
+        mFmInplay(false),
+#endif
+        mOutput(output),
         mLastWriteTime(0), mNumWrites(0), mNumDelayedWrites(0), mInWrite(false)
 {
     snprintf(mName, kNameLength, "AudioOut_%d", id);
@@ -1754,7 +1758,14 @@ status_t AudioFlinger::PlaybackThread::getRenderPosition(uint32_t *halFrames, ui
 
     return mOutput->stream->get_render_position(mOutput->stream, dspFrames);
 }
-
+#ifdef OMAP_ENHANCEMENT
+status_t AudioFlinger::PlaybackThread::setFMRxActive(bool state)
+{
+    LOGI("AudioFlinger::PlaybackThread::setFMRxActive,state =%x",state);
+    mFmInplay = state;
+    return NO_ERROR;
+}
+#endif
 uint32_t AudioFlinger::PlaybackThread::hasAudioSession(int sessionId)
 {
     Mutex::Autolock _l(mLock);
@@ -1925,7 +1936,11 @@ bool AudioFlinger::MixerThread::threadLoop()
             // put audio hardware into standby after short delay
             if UNLIKELY((!activeTracks.size() && systemTime() > standbyTime) ||
                         mSuspended) {
+#ifdef OMAP_ENHANCEMENT
+                if (!mStandby && !mFmInplay) {
+#else
                 if (!mStandby) {
+#endif
                     LOGV("Audio hardware entering standby, mixer %p, mSuspended %d\n", this, mSuspended);
                     mOutput->stream->common.standby(&mOutput->stream->common);
                     mStandby = true;
@@ -5171,6 +5186,21 @@ status_t AudioFlinger::setStreamOutput(uint32_t stream, int output)
     return NO_ERROR;
 }
 
+#ifdef OMAP_ENHANCEMENT
+status_t AudioFlinger::setFMRxActive(bool state)
+{
+    LOGI("setFMRxActive() ");
+    // check calling permissions
+    if (!settingsAllowed()) {
+        return PERMISSION_DENIED;
+    }
+
+    for (uint32_t i = 0; i < mPlaybackThreads.size(); i++)
+        mPlaybackThreads.valueAt(i)->setFMRxActive(state);
+
+    return NO_ERROR;
+}
+#endif
 
 int AudioFlinger::newAudioSessionId()
 {
