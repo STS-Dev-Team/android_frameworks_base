@@ -45,6 +45,11 @@
 #include <OMX_Component.h>
 
 #include "include/avc_utils.h"
+#ifdef OMAP_ENHANCEMENT
+#include <OMX_TI_Video.h>
+#include <OMX_TI_Index.h>
+#include <ctype.h>
+#endif
 
 namespace android {
 
@@ -4806,5 +4811,169 @@ void OMXCodec::restorePatchedDataPointer(BufferInfo *info) {
     OMX_BUFFERHEADERTYPE *header = (OMX_BUFFERHEADERTYPE *)info->mBuffer;
     header->pBuffer = (OMX_U8 *)info->mData;
 }
+
+#ifdef OMAP_ENHANCEMENT
+
+// Attempt to parse an int64 literal optionally surrounded by whitespace,
+// returns true on success, false otherwise.
+static bool safe_strtoi64(const char *s, int64_t *val) {
+    char *end;
+
+    // It is lame, but according to man page, we have to set errno to 0
+    // before calling strtoll().
+    errno = 0;
+    *val = strtoll(s, &end, 10);
+
+    if (end == s || errno == ERANGE) {
+        return false;
+    }
+
+    // Skip trailing whitespace
+    while (isspace(*end)) {
+        ++end;
+    }
+
+    // For a successful return, the string must contain nothing but a valid
+    // int64 literal optionally surrounded by whitespace.
+
+    return *end == '\0';
+}
+
+// Return true if the value is in [0, 0x007FFFFFFF]
+static bool safe_strtoi32(const char *s, int32_t *val) {
+    int64_t temp;
+    if (safe_strtoi64(s, &temp)) {
+        if (temp >= 0 && temp <= 0x007FFFFFFF) {
+            *val = static_cast<int32_t>(temp);
+            return true;
+        }
+    }
+    return false;
+}
+
+status_t OMXCodec::setParameter(const String8 &key, const String8 &value){
+
+    if (key == "video-param-insert-i-frame") {
+        LOGV("setParamInsertVideoIFrame");
+        OMX_CONFIG_INTRAREFRESHVOPTYPE voptype;
+        InitOMXParams(&voptype);
+        voptype.nPortIndex = 1;
+
+        status_t err = mOMX->getConfig(
+                mNode, OMX_IndexConfigVideoIntraVOPRefresh, &voptype, sizeof(voptype));
+        if (err != OK) {
+            return BAD_VALUE;
+        }
+
+        voptype.IntraRefreshVOP = OMX_TRUE;
+        err = mOMX->setConfig(
+                mNode, OMX_IndexConfigVideoIntraVOPRefresh, &voptype, sizeof(voptype));
+        if (err != OK) {
+            return BAD_VALUE;
+        }
+
+        return OK;
+    }
+    else if (key == "video-param-nalsize-bytes") {
+        int32_t bytes;
+        if (safe_strtoi32(value.string(), &bytes)) {
+            LOGV("setParamMaxNalSize:: bytes: %d", bytes);
+            OMX_VIDEO_CONFIG_SLICECODINGTYPE slicetype;
+            InitOMXParams(&slicetype);
+            slicetype.nPortIndex = 1;
+
+            status_t err = mOMX->getConfig(
+                    mNode, (OMX_INDEXTYPE)OMX_TI_IndexConfigSliceSettings, &slicetype, sizeof(slicetype));
+            if (err != OK) {
+                return BAD_VALUE;
+            }
+
+            slicetype.eSliceMode = OMX_VIDEO_SLICEMODE_AVCByteSlice;
+            slicetype.nSlicesize = bytes;
+
+            err = mOMX->setConfig(
+                    mNode, (OMX_INDEXTYPE)OMX_TI_IndexConfigSliceSettings, &slicetype, sizeof(slicetype));
+            if (err != OK) {
+                return BAD_VALUE;
+            }
+            return OK;
+        }
+    }
+    else if (key == "video-param-nalsize-macroblocks") {
+        int32_t mb;
+        if (safe_strtoi32(value.string(), &mb)) {
+            LOGV("setParamMaxNalSize:: MB: %d", mb);
+            OMX_VIDEO_CONFIG_SLICECODINGTYPE slicetype;
+            InitOMXParams(&slicetype);
+            slicetype.nPortIndex = 1;
+
+            status_t err = mOMX->getConfig(
+                    mNode, (OMX_INDEXTYPE)OMX_TI_IndexConfigSliceSettings, &slicetype, sizeof(slicetype));
+            if (err != OK) {
+                return BAD_VALUE;
+            }
+
+            slicetype.eSliceMode = OMX_VIDEO_SLICEMODE_AVCMBSlice;
+            slicetype.nSlicesize = mb;
+
+            err = mOMX->setConfig(
+                    mNode, (OMX_INDEXTYPE)OMX_TI_IndexConfigSliceSettings, &slicetype, sizeof(slicetype));
+            if (err != OK) {
+                return BAD_VALUE;
+            }
+            return OK;
+        }
+    }
+    else if (key == "video-config-encoding-bitrate") {
+        int32_t bitRate;
+        if (safe_strtoi32(value.string(), &bitRate)) {
+
+            LOGV("setConfigVideoBitRate: %d", bitRate);
+            OMX_VIDEO_CONFIG_BITRATETYPE bitrateType;
+            InitOMXParams(&bitrateType);
+            bitrateType.nPortIndex = 1;
+
+            status_t err = mOMX->getConfig(
+                    mNode, OMX_IndexConfigVideoBitrate,
+                    &bitrateType, sizeof(bitrateType));
+            if (err != OK) {
+                return BAD_VALUE;
+            }
+
+            bitrateType.nEncodeBitrate = bitRate;
+            err = mOMX->setConfig(mNode, OMX_IndexConfigVideoBitrate, &bitrateType, sizeof(bitrateType));
+            if (err != OK) {
+                return BAD_VALUE;
+            }
+            return OK;
+        }
+    }
+    else if (key == "video-config-encoding-framerate") {
+        int32_t frameRate;
+        if (safe_strtoi32(value.string(), &frameRate)) {
+
+            LOGV("setConfigVideoFrameRate: %d", frameRate);
+            OMX_CONFIG_FRAMERATETYPE framerateType;
+            InitOMXParams(&framerateType);
+            framerateType.nPortIndex = 0;
+
+            status_t err = mOMX->getConfig(
+                    mNode, OMX_IndexConfigVideoFramerate,
+                    &framerateType, sizeof(framerateType));
+            if (err != OK) {
+                return BAD_VALUE;
+            }
+
+            framerateType.xEncodeFramerate = frameRate << 16;
+            err = mOMX->setConfig(mNode, OMX_IndexConfigVideoFramerate, &framerateType, sizeof(framerateType));
+            if (err != OK) {
+                return BAD_VALUE;
+            }
+            return OK;
+        }
+    }
+    return BAD_VALUE;
+}
+#endif
 
 }  // namespace android
