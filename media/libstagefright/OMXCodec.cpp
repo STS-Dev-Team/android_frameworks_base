@@ -2514,7 +2514,8 @@ void OMXCodec::on_message(const omx_message &msg) {
                 }
 
 #ifdef OMAP_ENHANCEMENT_S3D
-                if (msg.u.extended_buffer_data.flags & OMX_TI_BUFFERFLAG_DETACHEDEXTRADATA) {
+                if ((msg.u.extended_buffer_data.flags & OMX_TI_BUFFERFLAG_DETACHEDEXTRADATA) &&
+                   !(mFlags & kEnableGrallocUsageProtected)) {
                     handle_extradata(msg.u.extended_buffer_data.platform_private);
                 }
 #endif
