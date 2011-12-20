@@ -127,6 +127,9 @@ enum {
     kKeyTextFormatData    = 'text',  // raw data
 
     kKeyRequiresSecureBuffers = 'secu',  // bool (int32_t)
+#ifdef OMAP_ENHANCEMENT_S3D
+    kKeyS3DLayout         = 's3dl',
+#endif
 #ifdef OMAP_ENHANCEMENT
     kKeyBufferLayout      = 'lout'
 #endif
