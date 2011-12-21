@@ -712,7 +712,11 @@ void AwesomePlayer::onVideoLagUpdate() {
     }
     mVideoLagEventPending = false;
 
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+    int64_t audioTimeUs = mAudioPlayer->getRealTimeUs();
+#else
     int64_t audioTimeUs = mAudioPlayer->getMediaTimeUs();
+#endif
     int64_t videoLateByUs = audioTimeUs - mVideoTimeUs;
 
     if (!(mFlags & VIDEO_AT_EOS) && videoLateByUs > 300000ll) {
@@ -1346,7 +1350,11 @@ status_t AwesomePlayer::getPosition(int64_t *positionUs) {
         Mutex::Autolock autoLock(mMiscStateLock);
         *positionUs = mVideoTimeUs;
     } else if (mAudioPlayer != NULL) {
+#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+        *positionUs = mAudioPlayer->getRealTimeUs();
+#else
         *positionUs = mAudioPlayer->getMediaTimeUs();
+#endif
     } else {
         *positionUs = 0;
     }
