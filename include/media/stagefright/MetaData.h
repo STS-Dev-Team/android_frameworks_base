@@ -131,7 +131,8 @@ enum {
     kKeyS3DLayout         = 's3dl',
 #endif
 #ifdef OMAP_ENHANCEMENT
-    kKeyBufferLayout      = 'lout'
+    kKeyBufferLayout      = 'lout',
+    kKeyVideoFPS          = 'vfps', // int32_t
 #endif
 };
 

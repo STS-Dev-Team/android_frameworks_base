@@ -357,6 +357,7 @@ private:
 #ifdef OMAP_ENHANCEMENT
 public:
     status_t setParameter(const String8 &key, const String8 &value);
+    int32_t mVideoFPS;
 #endif
 };
 
