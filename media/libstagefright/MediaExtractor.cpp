@@ -32,6 +32,7 @@
 
 #ifdef OMAP_ENHANCEMENT
 #include "include/ASFExtractor.h"
+#include "include/AVIExtractor.h"
 #endif
 
 #include "matroska/MatroskaExtractor.h"
@@ -122,7 +123,9 @@ sp<MediaExtractor> MediaExtractor::Create(
     }
 
 #ifdef OMAP_ENHANCEMENT
-    else if(!strcasecmp(mime, MEDIA_MIMETYPE_CONTAINER_ASF)) {
+      else if (!strcasecmp(mime, MEDIA_MIMETYPE_CONTAINER_AVI)) {
+        ret = new AVIExtractor(source);
+    } else if(!strcasecmp(mime, MEDIA_MIMETYPE_CONTAINER_ASF)) {
         if(isASFParserAvailable())  {
             MediaExtractor *ret = new ASFExtractor(source);
             if (ret == NULL) {
