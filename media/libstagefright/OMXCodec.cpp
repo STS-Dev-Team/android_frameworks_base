@@ -820,7 +820,17 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
 
     int32_t maxInputSize;
     if (meta->findInt32(kKeyMaxInputSize, &maxInputSize)) {
-        setMinBufferSize(kPortIndexInput, (OMX_U32)maxInputSize);
+#ifdef OMAP_ENHANCEMENT
+       if(!strcmp("OMX.TI.DUCATI1.VIDEO.DECODER", mComponentName)){
+            mInputMinBufferSize = maxInputSize;
+            LOGE("set buffer size variable to : %d",maxInputSize);
+       } else {
+#endif
+            setMinBufferSize(kPortIndexInput, (OMX_U32)maxInputSize);
+#ifdef OMAP_ENHANCEMENT
+       }
+#endif 
+
     }
 
     if (!strcmp(mComponentName, "OMX.TI.AMR.encode")
@@ -1666,6 +1676,9 @@ OMXCodec::OMXCodec(
       mOutputPortSettingsChangedPending(false),
       mLeftOverBuffer(NULL),
       mPaused(false),
+#ifdef OMAP_ENHANCEMENT
+      mInputMinBufferSize(0),
+#endif
       mNativeWindow(
               (!strncmp(componentName, "OMX.google.", 11)
               || !strcmp(componentName, "OMX.Nvidia.mpeg2v.decode"))
@@ -1866,6 +1879,14 @@ status_t OMXCodec::allocateBuffersOnPort(OMX_U32 portIndex) {
         return err;
     }
 
+#ifdef OMAP_ENHANCEMENT
+    if( (!strcmp(mComponentName, "OMX.TI.DUCATI1.VIDEO.DECODER")) &&
+        (portIndex == kPortIndexInput) &&
+        (def.nBufferSize < mInputMinBufferSize)) {
+        LOGI("!! Change the I/P buffer size to %d !!", mInputMinBufferSize);
+        def.nBufferSize = mInputMinBufferSize;
+    }
+#endif
     CODEC_LOGV("allocating %lu buffers of size %lu on %s port",
             def.nBufferCountActual, def.nBufferSize,
             portIndex == kPortIndexInput ? "input" : "output");
