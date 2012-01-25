@@ -163,6 +163,9 @@ private:
     sp<GraphicBuffer>           mLockedBuffer;
     sp<GraphicBuffer>           mPostedBuffer;
     mutable Region              mOldDirtyRegion;
+#ifdef OMAP_ENHANCEMENT
+    mutable Vector<Region>      mOldDirtyRegionHistory;
+#endif
     bool                        mConnectedToCpu;
 };
 

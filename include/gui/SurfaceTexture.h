@@ -48,6 +48,13 @@ public:
     enum { NUM_BUFFER_SLOTS = 32 };
     enum { NO_CONNECTED_API = 0 };
 
+#ifdef OMAP_ENHANCEMENT
+    enum {
+        MIN_SURFACEFLINGERCLIENT_BUFFERS = 2,
+        MAX_SURFACEFLINGERCLIENT_BUFFERS
+    };
+#endif
+
     struct FrameAvailableListener : public virtual RefBase {
         // onFrameAvailable() is called from queueBuffer() each time an
         // additional frame becomes available for consumption. This means that
