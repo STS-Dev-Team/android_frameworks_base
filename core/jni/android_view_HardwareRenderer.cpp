@@ -22,7 +22,15 @@
 
 #include <EGL/egl_cache.h>
 
+#ifdef OMAP_ENHANCEMENT
+#include <OpenGLRenderer.h>
+#endif
+
 namespace android {
+
+#ifdef OMAP_ENHANCEMENT
+using namespace uirenderer;
+#endif
 
 // ----------------------------------------------------------------------------
 // Misc
@@ -36,6 +44,13 @@ static void android_view_HardwareRenderer_setupShadersDiskCache(JNIEnv* env, job
     env->ReleaseStringUTFChars(diskCachePath, cacheArray);
 }
 
+
+#ifdef OMAP_ENHANCEMENT
+static jint android_view_HardwareRenderer_getMaximumTextureSize(JNIEnv* env, jobject clazz) {
+    return Caches::getInstance().maxTextureSize;
+}
+#endif
+
 // ----------------------------------------------------------------------------
 // JNI Glue
 // ----------------------------------------------------------------------------
@@ -45,6 +60,10 @@ const char* const kClassPathName = "android/view/HardwareRenderer";
 static JNINativeMethod gMethods[] = {
     { "nSetupShadersDiskCache", "(Ljava/lang/String;)V",
             (void*) android_view_HardwareRenderer_setupShadersDiskCache },
+#ifdef OMAP_ENHANCEMENT
+    { "nGetMaximumTextureSize", "()I",
+            (void*) android_view_HardwareRenderer_getMaximumTextureSize }
+#endif
 };
 
 int register_android_view_HardwareRenderer(JNIEnv* env) {

@@ -25,6 +25,7 @@ import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.util.DisplayMetrics;
 import android.util.Slog;
+import android.view.HardwareRenderer;
 
 /**
  * Provides information about the display size and density.
@@ -357,6 +358,19 @@ public class Display {
     }
 
     /**
+     * Gets maximal supported texture size.
+     * @hide
+     */
+    public int getMaximumTextureSize() {
+        if (SystemProperties.OMAP_ENHANCEMENT) {
+            if (mMaximumTextureSize == -1) {
+                mMaximumTextureSize = HardwareRenderer.getMaximumTextureSize();
+            }
+        }
+        return mMaximumTextureSize;
+    }
+
+    /**
      * Gets display metrics based on an explicit assumed display size.
      * @hide
      */
@@ -434,6 +448,7 @@ public class Display {
     /*package*/ float   mDpiX;
     /*package*/ float   mDpiY;
     private Rect        mMirroringRegion = new Rect();
+    private int         mMaximumTextureSize = -1;
     
     private final Point mTmpPoint = new Point();
     private final DisplayMetrics mTmpMetrics = new DisplayMetrics();
