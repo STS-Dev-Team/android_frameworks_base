@@ -799,6 +799,9 @@ status_t CameraService::Client::takePicture(int msgType) {
                         & (CAMERA_MSG_SHUTTER |
                            CAMERA_MSG_POSTVIEW_FRAME |
                            CAMERA_MSG_RAW_IMAGE |
+#ifdef OMAP_ENHANCEMENT
+                           CAMERA_MSG_RAW_BURST |
+#endif
                            CAMERA_MSG_RAW_IMAGE_NOTIFY |
                            CAMERA_MSG_COMPRESSED_IMAGE);
 #ifdef OMAP_ENHANCEMENT
