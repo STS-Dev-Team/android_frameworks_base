@@ -29,6 +29,7 @@ import android.os.UEventObserver;
 import android.util.Slog;
 import android.media.AudioManager;
 import android.util.Log;
+import android.os.SystemProperties;
 
 import java.io.FileReader;
 import java.io.FileNotFoundException;
@@ -52,6 +53,12 @@ class WiredAccessoryObserver extends UEventObserver {
                                                    {"DEVPATH=/devices/virtual/switch/hdmi",
                                                     "/sys/class/switch/hdmi/state",
                                                     "/sys/class/switch/hdmi/name"} };
+
+    private static final String uEventInfoDock[][] = { {"DEVPATH=/devices/virtual/switch/dock",
+                                                        "/sys/class/switch/dock/state",
+                                                        "/sys/class/switch/dock/name"} };
+                                                        
+    private static final String HDMI_CHANNEL_PATH = "/sys/devices/omapdss/display1/audio_channels";
 
     private static final int BIT_HEADSET = (1 << 0);
     private static final int BIT_HEADSET_NO_MIC = (1 << 1);
@@ -299,10 +306,35 @@ class WiredAccessoryObserver extends UEventObserver {
         }
     }
 
+    private synchronized final void updateHDMIaudiochannels(int state, int prevState, String name) {
+        if(state == 0) {
+            // if HDMI is disconnected set audio channels to 0
+            SystemProperties.set("dolby.audio.hdmi.channels","0");
+        } else {
+            // if HDMI is connected, then set the property to the correct count
+            char[] channels = new char[2];
+            Slog.e(TAG, "update audio channels of HDMI");
+            try {
+                FileReader file = new FileReader(HDMI_CHANNEL_PATH);
+                if(file.read(channels, 0, 1) > 0) {
+                    SystemProperties.set("dolby.audio.hdmi.channels",new String(channels, 0, 1));
+                }
+            } catch (FileNotFoundException e) {
+                Slog.w(TAG, "Not able to read audio channels of HDMI");
+            } catch (Exception e) {
+                Slog.e(TAG, "" , e);
+            }
+        }
+    }
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            sendIntents(msg.arg1, msg.arg2, (String)msg.obj);
+            String name = (String)msg.obj;
+            sendIntents(msg.arg1, msg.arg2, name);
+            if (name.equals("hdmi")) {
+                updateHDMIaudiochannels(msg.arg1, msg.arg2, name);
+            }
             mWakeLock.release();
         }
     };
