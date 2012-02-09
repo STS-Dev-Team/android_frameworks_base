@@ -119,7 +119,8 @@ void OmapLayer::drawWithOpenGL(const Region& clip) const
 
     //This layer draws its right view here as the viewport is not changed.
     //This is done so that blending of any higher z layers with this one is correct.
-    if (isS3D() && mRenderMode == eRenderStereo && !mFlingerS3D->isFramePackingRender()) {
+    if (isS3D() && mRenderMode == eRenderStereo && 
+        !mFlingerS3D->isFramePackingRender() && !mFlingerS3D->isMonoRender()) {
         mFlingerS3D->setDrawState(S3DSurfaceFlinger::eDrawingS3DRight);
         if (mFlingerS3D->isAnaglyphRender()) {
             //right view = cyan
