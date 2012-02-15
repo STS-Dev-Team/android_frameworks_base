@@ -1215,6 +1215,10 @@ status_t AwesomePlayer::pause_l(bool at_eos) {
 
     cancelPlayerEvents(true /* keepNotifications */);
 
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
+    mSeekTimeUs = mVideoTimeUs;
+#endif
+
     if (mAudioPlayer != NULL && (mFlags & AUDIO_RUNNING)) {
         if (at_eos) {
             // If we played the audio stream to completion we
@@ -1813,7 +1817,9 @@ void AwesomePlayer::onVideoEvent() {
     int64_t timeUs;
     CHECK(mVideoBuffer->meta_data()->findInt64(kKeyTime, &timeUs));
 
+#if !(defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR))
     mLastVideoTimeUs = timeUs;
+#endif
 
     if (mSeeking == SEEK_VIDEO_ONLY) {
         if (mSeekTimeUs > timeUs) {
@@ -1822,10 +1828,12 @@ void AwesomePlayer::onVideoEvent() {
         }
     }
 
+#if !(defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR))
     {
         Mutex::Autolock autoLock(mMiscStateLock);
         mVideoTimeUs = timeUs;
     }
+#endif
 
     SeekType wasSeeking = mSeeking;
     finishSeekIfNecessary(timeUs);
@@ -1880,6 +1888,12 @@ void AwesomePlayer::onVideoEvent() {
              * This keeps the timeline from having a big jump.
              */
             nowUs -= mTimeSourceDeltaUs;
+        }
+
+        mLastVideoTimeUs = nowUs;
+        {
+            Mutex::Autolock autoLock(mMiscStateLock);
+            mVideoTimeUs = nowUs;
         }
 #else
         int64_t nowUs = ts->getRealTimeUs() - mTimeSourceDeltaUs;
