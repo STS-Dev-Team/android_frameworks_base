@@ -406,8 +406,11 @@ status_t ColorConverter::convertYUV420SemiPlanar(
     // XXX Untested
 
     uint8_t *kAdjustedClip = initClip();
-
+#ifdef OMAP_ENHANCEMENT
+    if (!((dst.mWidth & 1) == 0
+#else
     if (!((dst.mWidth & 3) == 0
+#endif
             && (src.mCropLeft & 1) == 0
             && src.cropWidth() == dst.cropWidth()
             && src.cropHeight() == dst.cropHeight())) {
@@ -475,8 +478,11 @@ status_t ColorConverter::convertYUV420SemiPlanar(
 status_t ColorConverter::convertTIYUV420PackedSemiPlanar(
         const BitmapParams &src, const BitmapParams &dst) {
     uint8_t *kAdjustedClip = initClip();
-
+#ifdef OMAP_ENHANCEMENT
+    if (!((dst.mWidth & 1) == 0
+#else
     if (!((dst.mWidth & 3) == 0
+#endif
             && (src.mCropLeft & 1) == 0
             && src.cropWidth() == dst.cropWidth()
             && src.cropHeight() == dst.cropHeight())) {
@@ -544,7 +550,7 @@ status_t ColorConverter::convertTIYUV420PackedSemiPlanarInterlaced(
         const BitmapParams &src, const BitmapParams &dst) {
     uint8_t *kAdjustedClip = initClip();
 
-    if (!((dst.mWidth & 3) == 0
+    if (!((dst.mWidth & 1) == 0
             && (src.mCropLeft & 1) == 0
             && src.cropWidth() == dst.cropWidth())) {
         return ERROR_UNSUPPORTED;
