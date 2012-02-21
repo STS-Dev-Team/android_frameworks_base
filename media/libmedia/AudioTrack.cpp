@@ -229,7 +229,11 @@ status_t AudioTrack::set(
                                   flags,
                                   sharedBuffer,
                                   output,
+#ifdef OMAP_ENHANCEMENT
+                                  false);
+#else
                                   true);
+#endif
 
     if (status != NO_ERROR) {
         return status;
@@ -767,7 +771,12 @@ status_t AudioTrack::createTrack_l(
                     LOGE("Invalid buffer size: minFrameCount %d, frameCount %d", minFrameCount, frameCount);
                     return BAD_VALUE;
                 } else {
+#ifdef OMAP_ENHANCEMENT
+                    LOGW("frameCount (%d) < minFrameCount (%d). If output HAL is not buffered this may cause underruns",
+                         frameCount, minFrameCount);
+#else
                     frameCount = minFrameCount;
+#endif
                 }
             }
         } else {
