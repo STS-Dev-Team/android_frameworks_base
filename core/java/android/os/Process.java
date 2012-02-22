@@ -104,6 +104,12 @@ public class Process {
     public static final int NFC_UID = 1027;
 
     /**
+     * Defines the UID/GID for the FM Radio service process.
+     * @hide
+     */
+    public static final int FMRADIO_UID = 1028;
+
+    /**
      * Defines the GID for the group that allows write access to the internal media storage.
      * @hide
      */
