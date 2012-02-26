@@ -2389,7 +2389,12 @@ error:
     }
 }
 
+#ifdef OMAP_ENHANCEMENT
+int64_t OMXCodec::getDecodingTimeUs() {
+#else
 int64_t OMXCodec::retrieveDecodingTimeUs(bool isCodecSpecific) {
+#endif
+
     CHECK(mIsEncoder);
 
     if (mDecodingTimeList.empty()) {
@@ -2401,12 +2406,15 @@ int64_t OMXCodec::retrieveDecodingTimeUs(bool isCodecSpecific) {
 
     List<int64_t>::iterator it = mDecodingTimeList.begin();
     int64_t timeUs = *it;
-
+#ifdef OMAP_ENHANCEMENT
+    mDecodingTimeList.erase(it);
+#else
     // If the output buffer is codec specific configuration,
     // do not remove the decoding time from the list.
     if (!isCodecSpecific) {
         mDecodingTimeList.erase(it);
     }
+#endif
     return timeUs;
 }
 
@@ -2646,7 +2654,11 @@ void OMXCodec::on_message(const omx_message &msg) {
                 }
 
                 if (mIsEncoder) {
+#ifdef OMAP_ENHANCEMENT
+                    int64_t decodingTimeUs = isCodecSpecific ? 0 : getDecodingTimeUs();
+#else
                     int64_t decodingTimeUs = retrieveDecodingTimeUs(isCodecSpecific);
+#endif
                     buffer->meta_data()->setInt64(kKeyDecodingTime, decodingTimeUs);
                 }
 
