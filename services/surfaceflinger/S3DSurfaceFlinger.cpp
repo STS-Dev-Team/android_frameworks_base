@@ -401,11 +401,6 @@ sp<LayerScreenshot> S3DSurfaceFlinger::createScreenshotSurface(
         layer = new OmapLayerScreenshot(this, display, client, type, eLeftViewFirst);
     }
 
-    status_t err = layer->capture();
-    if (err != NO_ERROR) {
-        layer.clear();
-        LOGW("createScreenshotSurface failed (%s)", strerror(-err));
-    }
     return layer;
 }
 

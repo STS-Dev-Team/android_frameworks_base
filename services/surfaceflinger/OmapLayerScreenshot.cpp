@@ -33,9 +33,14 @@ OmapLayerScreenshot::OmapLayerScreenshot(S3DSurfaceFlinger* flinger,
 
 uint32_t OmapLayerScreenshot::doTransaction(uint32_t f)
 {
-    uint32_t flags = LayerBase::doTransaction(f);
-    if(mType != eMono && (flags & eVisibleRegion)) {
-        mFlingerS3D->addS3DLayer_l(this);
+    uint32_t flags = LayerScreenshot::doTransaction(f);
+    const Layer::State& draw(drawingState());
+    const Layer::State& curr(currentState());
+
+    if (draw.flags & ISurfaceComposer::eLayerHidden) {
+        if (!(curr.flags & ISurfaceComposer::eLayerHidden) && mType != eMono) {
+            mFlingerS3D->addS3DLayer_l(this);
+        }
     }
     return flags;
 }
