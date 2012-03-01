@@ -2132,11 +2132,13 @@ status_t OMXCodec::setupAVCEncoderParameters(const sp<MetaData>& meta) {
     bitRate = hfr ? (hfrRatio*bitRate) : bitRate;
 #endif
 
+#ifndef OMAP_ENHANCEMENT
     // FIXME:
     // Remove the workaround after the work in done.
     if (!strncmp(mComponentName, "OMX.TI.DUCATI1", 14)) {
         h264type.eProfile = OMX_VIDEO_AVCProfileBaseline;
     }
+#endif
 
     if (h264type.eProfile == OMX_VIDEO_AVCProfileBaseline) {
         h264type.nSliceHeaderSpacing = 0;
