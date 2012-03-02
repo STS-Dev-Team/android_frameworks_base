@@ -896,7 +896,7 @@ public class MediaScanner
                     setSettingIfNotSet(Settings.System.NOTIFICATION_SOUND, tableUri, rowId);
                     mDefaultNotificationSet = true;
                 }
-            } else if (ringtones && mWasEmptyPriorToScan && !mDefaultRingtoneSet) {
+            } else if (ringtones && !mDefaultRingtoneSet) {
                 if (TextUtils.isEmpty(mDefaultRingtoneFilename) ||
                         doesPathHaveFilename(entry.mPath, mDefaultRingtoneFilename)) {
                     setSettingIfNotSet(Settings.System.RINGTONE, tableUri, rowId);
