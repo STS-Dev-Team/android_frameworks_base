@@ -1895,6 +1895,10 @@ void AwesomePlayer::onVideoEvent() {
             Mutex::Autolock autoLock(mMiscStateLock);
             mVideoTimeUs = nowUs;
         }
+
+        if (mWatchForAudioSeekComplete) {
+            postCheckAudioStatusEvent(0); /* locks mAudioLock */
+        }
 #else
         int64_t nowUs = ts->getRealTimeUs() - mTimeSourceDeltaUs;
 #endif
@@ -2086,7 +2090,12 @@ void AwesomePlayer::onCheckAudioStatus() {
 
     Mutex::Autolock autoLock(mLock);
 
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
+    if (mWatchForAudioSeekComplete && !mAudioPlayer->isSeeking()
+        && (mVideoTimeUs >= mSeekTimeUs) ) {
+#else
     if (mWatchForAudioSeekComplete && !mAudioPlayer->isSeeking()) {
+#endif
         mWatchForAudioSeekComplete = false;
 
         if (!mSeekNotificationSent) {
