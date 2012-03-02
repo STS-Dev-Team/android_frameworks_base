@@ -141,6 +141,9 @@ namespace omap_enhancement
         int64_t usecs_queued() {
             return m_queued;
         }
+        int64_t read_pointer() {
+            return m_read + m_queued;
+        }
         void set_latency(int64_t lat_usecs) {
             if (lat_usecs > 0) {
                 m_latency = lat_usecs;
@@ -1286,25 +1289,15 @@ bool AudioPlayer::getMediaTimeMapping(
         int64_t *realtime_us, int64_t *mediatime_us) {
     Mutex::Autolock autoLock(mLock);
 
-    *realtime_us = mPositionTimeRealUs;
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
-    /* AwesomePlayer is trying to use the media read pointer as an
-     * accurate indication of the "audio time" as an attempt to check
-     * that the file pointer isn't too far from the audio clock
-     * (getRealTimeUs()).  Since we are handling this internally, we
-     * return the same value as long as we are within expected limits.
+    /* AwesomePlayer wants to make sure that the read pointer in
+     * the codec is close to what the buffer "read pointer" is.
      */
-    int64_t now = mRealTimeInterpolator->get_stream_usecs();
-    int64_t audio_queued = mRealTimeInterpolator->usecs_queued();
-    if ((mPositionTimeMediaUs <= now + audio_queued)
-        && (mPositionTimeMediaUs >= now) ) {
-        *mediatime_us = now;
-    } else {
-        *mediatime_us = mPositionTimeMediaUs;
-    }
+    *realtime_us = mRealTimeInterpolator->read_pointer();
 #else
-    *mediatime_us = mPositionTimeMediaUs;
+    *realtime_us = mPositionTimeRealUs;
 #endif
+    *mediatime_us = mPositionTimeMediaUs;
 
     return mPositionTimeRealUs != -1 && mPositionTimeMediaUs != -1;
 }
