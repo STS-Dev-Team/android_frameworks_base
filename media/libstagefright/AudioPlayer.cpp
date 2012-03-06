@@ -169,10 +169,6 @@ namespace omap_enhancement
             ERR_OVERRUN,
         } input_t;
 
-        enum {
-            MAX_OVERRUNS = 2,
-        };
-
     private:
         /* All time variables are in microseconds (usecs). */
         state_t m_state;         /* the current state of this class */
@@ -183,7 +179,6 @@ namespace omap_enhancement
         int64_t m_read;          /* read pointer of media at t0 */
         int64_t m_queued;        /* amount of media queued for next callback */
         int64_t m_latency;       /* typ. 1x or 2x the size of the FIFO */
-        int64_t m_overruns;      /* 1 + number of overruns that have occured */
 
         /* These two are for error checking
          */
@@ -340,7 +335,6 @@ namespace omap_enhancement
             m_Tf = 0;
             m_last = media_time;
             m_now_last = 0;
-            m_overruns = 1;
         } else {
             LOGE_IF(m_state != ROLLING, "TimeInterpolator logic error: "
                     "state is not rolling in seek()");
@@ -437,9 +431,9 @@ namespace omap_enhancement
         /* t_media += m_latency; */
         pthread_mutex_unlock(&m_mutex);
         LOGV("%s == %lld (t0=%lld, pos0=%lld, Tf=%g, read=%lld, queued=%lld "
-             "latency=%lld overruns=%lld now=%lld, ",
+             "latency=%lld now=%lld, ",
              __func__, t_media, m_t0, m_pos0, m_Tf, m_read, m_queued,
-             m_latency, m_overruns, now);
+             m_latency, now);
         return t_media;
     }
 
@@ -591,7 +585,7 @@ namespace omap_enhancement
 
             m_read += m_queued;
             pos1 = m_pos0 + m_Tf * dt;
-            pos1_desired = m_read - m_latency * m_overruns;
+            pos1_desired = m_read - m_latency;
             e = pos1 - pos1_desired;
 
             if (pos1 < m_last) {
@@ -659,16 +653,9 @@ namespace omap_enhancement
         LOGE("TimeInterpolator OVERRUN detected");
         int64_t now = get_system_usecs();
         if (m_state == ROLLING) {
-            if (m_overruns >= MAX_OVERRUNS) {
-                /* abruptly advance time */
-                m_pos0 = m_read - m_overruns * m_latency;
-                m_t0 = get_system_usecs();
-            } else {
-                ++m_overruns;
-                int64_t t1 = m_pos0 + m_Tf * (now - m_t0);
-                int64_t dt = m_read - t1;
-                m_t0 = t1;
-            }
+            /* abruptly advance time */
+            m_pos0 = m_read - m_latency;
+            m_t0 = get_system_usecs();
         }
     }
 
