@@ -1858,22 +1858,11 @@ void AwesomePlayer::onVideoEvent() {
 
 #if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
         int64_t nowUs = ts->getRealTimeUs();
-        int64_t seek_tolerance;
-        if (ts == mAudioPlayer) {
-            seek_tolerance = (mAudioPlayer->latency() * 3) / 2;
-        } else {
-            LOGV("Using default seek_tolerance ts=0x%08xd mAudioPlayer=0x%08x",
-                 (unsigned)ts, (unsigned)mAudioPlayer);
-            seek_tolerance = DEFAULT_AUDIO_LATENCY;
-        }
-        if ((mTimeSourceDeltaUs < -seek_tolerance) || (mTimeSourceDeltaUs > seek_tolerance)) {
-            /* mTimeSourceDeltaUs compares the video time to the
-             * "media" time to check alignment.  Since this is simply
-             * the read pointer for the media, it's usually irrelevent
-             * to A/V sync.  However, if there is a seek in the video
-             * then this is our only way to catch it.
+
+        if (ts == (TimeSource*)&mSystemTimeSource) {
+            /* At end of audio stream, clock switches back to system clock.
+             * This keeps the timeline from having a big jump.
              */
-            LOGI("Seek tolerance hit mTimeSourceDeltaUs=%lld seek_tolerance=%lld", mTimeSourceDeltaUs, seek_tolerance);
             nowUs -= mTimeSourceDeltaUs;
         }
 #else
