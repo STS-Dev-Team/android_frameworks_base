@@ -1044,9 +1044,6 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
                 mInputBuffer = mFirstBuffer;
                 mFirstBuffer = NULL;
                 err = mFirstBufferResult;
-#if defined(OMAP_ENHANCEMENT) && defined (OMAP_TIME_INTERPOLATOR)
-                mRealTimeInterpolator->seek(0);
-#endif
 
                 mIsFirstBuffer = false;
             } else {
