@@ -391,6 +391,7 @@ namespace omap_enhancement
         if (m_state == FIRST_ROLLING &&
             m_pos0 == m_read &&
             m_queued) {
+            LOGW("TimeInterpolator Dropped a call to seek(media_time=%lld)", media_time);
             goto end;
         }
 
@@ -489,11 +490,10 @@ namespace omap_enhancement
         if (dt < 0.0) dt = 0.0;
         t_media = m_pos0 + int64_t(dt);
         if (t_media < m_last) {
-            LOGE("time tried to rewind: %lld Tf=%g t0=%lld pos0=%lld dt=%g "
+            LOGW("time is rewinding: %lld Tf=%g t0=%lld pos0=%lld dt=%g "
                  "now=%lld last=%lld now_last=%lld",
                  t_media - m_last, m_Tf, m_t0, m_pos0, dt,
                  now, m_last, m_now_last);
-            t_media = m_last;
         }
         if (t_media >= read_pointer()) {
             if (m_state == ROLLING) {
@@ -634,15 +634,26 @@ namespace omap_enhancement
             }
 
             if (m_state == STOPPED) {
+                /* Setting the initial_offset to half the latency
+                 * was found (by trial-and-error) to stabilize the
+                 * TimeInterpolator within about 2-4 video frames.
+                 */
+                int64_t initial_offset = m_latency / 2;
                 if (m_queued != 0) {
                     LOGE("TimeInterpolator state is PAUSED, but m_queued is "
                          "not 0 (actually %lld)", frame_usecs);
                 }
                 m_t0 = get_system_usecs();
-                set_state(FIRST_ROLLING, POST_BUFFER);
-                m_queued = frame_usecs;
+                set_state(ROLLING, POST_BUFFER);
+                m_read += frame_usecs;
+                if (initial_offset < 40000) {
+                    initial_offset = 40000;
+                }
+                m_pos0 = m_read - initial_offset;
+                m_queued = 0;
                 m_countdown = m_latency * m_overruns;
                 m_countdown -= frame_usecs;
+                m_countdown = 0;
                 m_Tf = 1.0;
                 if (m_countdown < 0) m_countdown = 0;
                 goto end;
@@ -653,12 +664,15 @@ namespace omap_enhancement
                     LOGI("TimeInterpolator FIRST_ROLLING frame_usecs=%lld",
                          frame_usecs);
                     m_countdown -= frame_usecs;
+                    m_read += m_queued;
+                    m_queued = frame_usecs;
+                    m_pos0 = m_read - m_latency;
                     m_Tf = 1.0;
                     if (m_countdown < 0) {
                         m_countdown = 0;
                         countdown_ended = true;
                     }
-                    aggregate_buffers = true;
+                    goto end;
                 } else {
                     countdown_ended = true;
                     set_state(ROLLING, COUNTDOWN_0);
