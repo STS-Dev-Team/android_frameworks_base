@@ -124,6 +124,10 @@ static sp<MediaSource> InstantiateSoftwareEncoder(
 static const CodecInfo kDecoderInfo[] = {
     { MEDIA_MIMETYPE_IMAGE_JPEG, "OMX.TI.JPEG.decode" },
 //    { MEDIA_MIMETYPE_AUDIO_MPEG, "OMX.TI.MP3.decode" },
+#ifdef OMAP_ENHANCEMENT
+    { MEDIA_MIMETYPE_AUDIO_AAC, "OMX.ITTIAM.AAC.decode" },
+    { MEDIA_MIMETYPE_AUDIO_AAC, "OMX.ITTIAM.BSAC.decode" },
+#endif
     { MEDIA_MIMETYPE_AUDIO_MPEG, "OMX.google.mp3.decoder" },
     { MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_II, "OMX.Nvidia.mp2.decoder" },
 //    { MEDIA_MIMETYPE_AUDIO_AMR_NB, "OMX.TI.AMR.decode" },
@@ -330,6 +334,16 @@ uint32_t OMXCodec::getComponentQuirks(
     }
 
 #ifdef OMAP_ENHANCEMENT
+    if (!strcmp(componentName, "OMX.ITTIAM.AAC.decode")) {
+        quirks |= kNeedsFlushBeforeDisable;
+        quirks |= kRequiresFlushCompleteEmulation;
+    }
+
+    if (!strcmp(componentName, "OMX.ITTIAM.BSAC.decode")) {
+        quirks |= kNeedsFlushBeforeDisable;
+        quirks |= kRequiresFlushCompleteEmulation;
+    }
+
     if (!strcmp(componentName, "OMX.ITTIAM.WMA.decode")) {
        quirks |= kNeedsFlushBeforeDisable;
        quirks |= kRequiresFlushCompleteEmulation;
@@ -874,8 +888,15 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
             esds.getCodecSpecificInfo(
                     &codec_specific_data, &codec_specific_data_size);
 
+#ifdef OMAP_ENHANCEMENT
+            if (strcmp(mComponentName, "OMX.ITTIAM.BSAC.decode")) {
+                addCodecSpecificData(
+                    codec_specific_data, codec_specific_data_size);
+            }
+#else
             addCodecSpecificData(
                     codec_specific_data, codec_specific_data_size);
+#endif
         } else if (meta->findData(kKeyAVCC, &type, &data, &size)) {
             // Parse the AVCDecoderConfigurationRecord
 
@@ -946,11 +967,23 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
         CHECK(meta->findInt32(kKeyChannelCount, &numChannels));
         CHECK(meta->findInt32(kKeySampleRate, &sampleRate));
 
+#ifdef OMAP_ENHANCEMENT
+        if (!strcmp(mComponentName, "OMX.ITTIAM.BSAC.decode")) {
+            setBSACFormat(numChannels, sampleRate);
+        } else {
+            status_t err = setAACFormat(numChannels, sampleRate, bitRate);
+            if (err != OK) {
+                CODEC_LOGE("setAACFormat() failed (err = %d)", err);
+                return err;
+            }
+        }
+#else
         status_t err = setAACFormat(numChannels, sampleRate, bitRate);
         if (err != OK) {
             CODEC_LOGE("setAACFormat() failed (err = %d)", err);
             return err;
         }
+#endif
     } else if (!strcasecmp(MEDIA_MIMETYPE_AUDIO_G711_ALAW, mMIME)
             || !strcasecmp(MEDIA_MIMETYPE_AUDIO_G711_MLAW, mMIME)) {
         // These are PCM-like formats with a fixed sample rate but
@@ -4199,6 +4232,31 @@ status_t OMXCodec::setAACFormat(int32_t numChannels, int32_t sampleRate, int32_t
 
     return OK;
 }
+
+#ifdef OMAP_ENHANCEMENT
+void OMXCodec::setBSACFormat(int32_t numChannels, int32_t sampleRate) {
+    OMX_AUDIO_PARAM_BSACTYPE params;
+    params.nSize = sizeof(params);
+    params.nVersion.s.nVersionMajor = 0xF1;
+    params.nVersion.s.nVersionMinor = 0xF2;
+    params.nPortIndex = kPortIndexInput;
+
+    LOGD("Get Parameter in BSACFormat -> stagefright");
+
+    status_t err = mOMX->getParameter(
+            mNode, OMX_IndexParamAudioBsac, &params, sizeof(params));
+    CHECK_EQ(err, (status_t)OK);
+
+    params.nChannels = numChannels;
+    params.nSampleRate = sampleRate;
+
+    LOGD("Set Parameter in BSACFormat -> stagefright");
+
+    err = mOMX->setParameter(
+            mNode, OMX_IndexParamAudioBsac, &params, sizeof(params));
+    CHECK_EQ(err, (status_t)OK);
+}
+#endif
 
 void OMXCodec::setG711Format(int32_t numChannels) {
     CHECK(!mIsEncoder);

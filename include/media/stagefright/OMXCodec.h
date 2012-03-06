@@ -29,6 +29,26 @@
 
 namespace android {
 
+#ifdef OMAP_ENHANCEMENT
+typedef struct OMX_AUDIO_PARAM_BSACTYPE {
+    OMX_U32         nSize;                 /**< size of the structure in bytes */
+    OMX_VERSIONTYPE nVersion;              /**< OMX specification version information */
+    OMX_U32         nPortIndex;            /**< port that this structure applies to */
+    OMX_S32         nSampleRate;
+    OMX_S32         nChannels;
+ } OMX_AUDIO_PARAM_BSACTYPE;
+
+/** Enumeration used to define the possible audio codings.
+ *  If "OMX_AUDIO_CodingUnused" is selected, the coding selection must
+ *  be done in a vendor specific way.  Since this is for an audio
+ *  processing element this enum is relevant.  However, for another
+ *  type of component other enums would be in this area.
+ */
+
+#define OMX_AUDIO_CodingBSAC        (OMX_AUDIO_CODINGTYPE)(OMX_AUDIO_CodingVendorStartUnused + 1) /**< Any variant of BSAC encoded data */
+#define OMX_IndexParamAudioBsac     (OMX_INDEXTYPE)(OMX_IndexVendorStartUnused+1)
+#endif
+
 class MemoryDealer;
 struct OMXCodecObserver;
 struct CodecProfileLevel;
@@ -423,6 +443,9 @@ private:
 
     void setAMRFormat(bool isWAMR, int32_t bitRate);
     status_t setAACFormat(int32_t numChannels, int32_t sampleRate, int32_t bitRate);
+#ifdef OMAP_ENHANCEMENT
+    void setBSACFormat(int32_t numChannels, int32_t sampleRate);
+#endif
     void setG711Format(int32_t numChannels);
 
     status_t setVideoPortFormatType(
