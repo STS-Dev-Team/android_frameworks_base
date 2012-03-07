@@ -139,25 +139,6 @@ public abstract class HardwareRenderer {
     }
 
     /**
-     * Gets maximal supported texture size.
-     * 
-     * @hide
-     */
-    public static int getMaximumTextureSize() {
-        if (SystemProperties.OMAP_ENHANCEMENT) {
-            if (isAvailable()) {
-                return nGetMaximumTextureSize();
-            } else {
-                return 0;
-            }
-        } else {
-            return 0;
-        }
-    }
-
-    private static native int nGetMaximumTextureSize();
-
-    /**
      * Destroys the hardware rendering context.
      * 
      * @param full If true, destroys all associated resources.
