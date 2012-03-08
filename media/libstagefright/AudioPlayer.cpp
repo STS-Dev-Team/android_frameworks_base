@@ -411,6 +411,9 @@ namespace omap_enhancement
         dt = m_Tf * double(now - m_t0);
         if (dt < 0.0) dt = 0.0;
         t_media = m_pos0 + int64_t(dt);
+        if (t_media < 0) {
+            t_media = 0;
+        }
         if (t_media < m_last) {
             LOGW("time is rewinding: %lld Tf=%g t0=%lld pos0=%lld dt=%g "
                  "now=%lld last=%lld now_last=%lld",
