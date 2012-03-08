@@ -495,9 +495,9 @@ namespace omap_enhancement
                  now, m_last, m_now_last);
             t_media = m_last;
         }
-        if (t_media >= m_read) {
+        if (t_media >= read_pointer()) {
             if (m_state == ROLLING) {
-                t_media = m_read;
+                t_media = read_pointer();
                 LOGE("UNDERRUN in %s", __func__);
                 err_underrun();
             }
