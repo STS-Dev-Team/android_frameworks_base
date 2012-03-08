@@ -268,11 +268,11 @@ namespace omap_enhancement
             "ERR_OVERRUN",
         };
 
-        LOGI("TimeInterpolator state %s -> %s (input: %s)", state_strings[m_state],
+        LOGV("TimeInterpolator state %s -> %s (input: %s)", state_strings[m_state],
              state_strings[s], input_strings[i]);
 
         if (m_state == s) {
-            LOGE("TimeInterpolator calling set_state() should actually change a state.");
+            LOGV("TimeInterpolator calling set_state() should actually change a state.");
         }
 
         /* this block is just for error-checking */
@@ -325,7 +325,7 @@ namespace omap_enhancement
     void TimeInterpolator::seek(int64_t media_time)
     {
         pthread_mutex_lock(&m_mutex);
-        LOGI("TimeInterpolator::seek(media_time=%lld)", media_time);
+        LOGV("TimeInterpolator::seek(media_time=%lld)", media_time);
 
         if (m_state == STOPPED || m_state == PAUSED) {
             m_pos0 = media_time;
@@ -355,7 +355,7 @@ namespace omap_enhancement
         int64_t seek_to = -1;
 
         pthread_mutex_lock(&m_mutex);
-        LOGI("%s()", __func__);
+        LOGV("%s()", __func__);
         if (flushing_fifo) {
             set_state(STOPPED, STOP);
             seek_to = m_read + m_queued;
@@ -555,7 +555,7 @@ namespace omap_enhancement
                  */
                 int64_t initial_offset = m_latency / 2;
                 if (m_queued != 0) {
-                    LOGE("TimeInterpolator state is PAUSED, but m_queued is "
+                    LOGW("TimeInterpolator state is PAUSED, but m_queued is "
                          "not 0 (actually %lld)", frame_usecs);
                 }
                 m_t0 = get_system_usecs();
@@ -588,13 +588,14 @@ namespace omap_enhancement
             pos1_desired = m_read - m_latency;
             e = pos1 - pos1_desired;
 
-            if (pos1 < m_last) {
-                LOGI("this cycle will cause a rewind pos1=%lld m_last=%lld pos-last=%lld",
+            if ((pos1 < m_last) && (m_last > 0)) {
+                /* This is ignored at the start of playback */
+                LOGW("this cycle will cause a rewind pos1=%lld m_last=%lld pos-last=%lld",
                      pos1, m_last, (pos1-m_last));
             }
             if (set_Tf_to_unity) {
                 e = pos1 - (m_read - m_latency);
-                LOGI("%s set_Tf_to_unity e=%g (resetting to 0)", __func__, e);
+                LOGV("%s set_Tf_to_unity e=%g (resetting to 0)", __func__, e);
                 e = 0;
                 m_Tf = 1.0;
             } else {
