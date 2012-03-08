@@ -273,6 +273,7 @@ namespace omap_enhancement
 
         if (m_state == s) {
             LOGV("TimeInterpolator calling set_state() should actually change a state.");
+            return;
         }
 
         /* this block is just for error-checking */
