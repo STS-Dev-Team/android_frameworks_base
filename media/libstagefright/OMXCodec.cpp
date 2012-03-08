@@ -1994,6 +1994,13 @@ status_t OMXCodec::setupH263EncoderParameters(const sp<MetaData>& meta) {
     }
     h263type.nBFrames = 0;
 
+#ifdef OMAP_ENAHNCEMENT
+    //When flag kOnlySubmitOneInputBufferAtOneTime is enabled, B frames must not be used.
+    if (mFlags & kOnlySubmitOneInputBufferAtOneTime) {
+        h263type.nBFrames = 0;
+    }
+#endif
+
     // Check profile and level parameters
     CodecProfileLevel defaultProfileLevel, profileLevel;
     defaultProfileLevel.mProfile = h263type.eProfile;
@@ -2063,6 +2070,13 @@ status_t OMXCodec::setupMPEG4EncoderParameters(const sp<MetaData>& meta) {
     mpeg4type.nTimeIncRes = 1000;
     mpeg4type.nHeaderExtension = 0;
     mpeg4type.bReversibleVLC = OMX_FALSE;
+
+#ifdef OMAP_ENHANCEMENT
+    //When flag kOnlySubmitOneInputBufferAtOneTime is enabled, B frames must not be used.
+    if (mFlags & kOnlySubmitOneInputBufferAtOneTime) {
+        mpeg4type.nBFrames = 0;
+    }
+#endif
 
     // Check profile and level parameters
     CodecProfileLevel defaultProfileLevel, profileLevel;
@@ -2169,6 +2183,12 @@ status_t OMXCodec::setupAVCEncoderParameters(const sp<MetaData>& meta) {
         h264type.nBFrames = 1;
         h264type.nPFrames = h264type.nPFrames / 2;
         mNumBFrames = 1;
+    }
+#endif
+#ifdef OMAP_ENHANCEMENT
+    //When flag kOnlySubmitOneInputBufferAtOneTime is enabled, B frames must not be used.
+    if (mFlags & kOnlySubmitOneInputBufferAtOneTime) {
+        h264type.nBFrames = 0;
     }
 #endif
 
