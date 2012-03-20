@@ -2834,7 +2834,9 @@ void OMXCodec::on_message(const omx_message &msg) {
 
 #ifdef OMAP_ENHANCEMENT_S3D
                 if ((msg.u.extended_buffer_data.flags & OMX_TI_BUFFERFLAG_DETACHEDEXTRADATA) &&
-                   !(mFlags & kEnableGrallocUsageProtected)) {
+                    !(mFlags & kEnableGrallocUsageProtected) &&
+                    !(msg.u.extended_buffer_data.flags & OMX_BUFFERFLAG_EOS) &&
+                    !strcmp(mComponentName, "OMX.TI.DUCATI1.VIDEO.DECODER")) {
                     handle_extradata(msg.u.extended_buffer_data.platform_private);
                 }
 #endif
