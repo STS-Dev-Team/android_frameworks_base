@@ -2092,7 +2092,7 @@ void AwesomePlayer::onCheckAudioStatus() {
 
 #if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     if (mWatchForAudioSeekComplete && !mAudioPlayer->isSeeking()
-        && (mVideoTimeUs >= mSeekTimeUs) ) {
+        && ((mVideoSource == NULL) || (mVideoTimeUs >= mSeekTimeUs)) ) {
 #else
     if (mWatchForAudioSeekComplete && !mAudioPlayer->isSeeking()) {
 #endif
