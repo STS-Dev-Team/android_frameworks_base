@@ -566,7 +566,201 @@ sp<MediaSource> OMXCodec::Create(
     return NULL;
 }
 
+#ifdef OMAP_ENHANCEMENT
+/**
+ * Parser for H.264 sequence parameter set unit
+ * @param[out]  pMeta       Link to mVideoTrack->getFormat()
+ * @param[in]   pData       Pointer to frame data
+ * @param[in]   nSize       Size of frame data
+ * @param[out]  nProfile    H.264 profile Idc
+ * @param[out]  nLevel      H.264 level Idc
+ * @return Result code
+ */
+status_t OMXCodec::parseSpsFrame(const sp<MetaData> &pMeta, const uint8_t *pData,
+        size_t nSize, unsigned &nProfile, unsigned &nLevel) {
+    /* Parser implemented accorind to "Rec. ITU-T H.264 (06/2011) – Prepublished version"
+      chapter "7.3.2.1.1 Sequence parameter set data syntax" */
+    CBitBuffer pBitBuffer(pData, nSize);
+    uint32_t tmp_u32;
+    int32_t tmp_s32;
+
+    if (pBitBuffer.GetBit() != 0) {
+        LOGW("Detected damaged SPS frame %p (forbidden_zero_bit != 0)", pData);
+        return ERROR_MALFORMED;
+    }
+
+    uint32_t ref_idc, nal_unit_type;
+    pBitBuffer.GetBits(2, ref_idc);
+    pBitBuffer.GetBits(5, nal_unit_type);
+    LOGV("SPS ref_idc = %d nal_unit_type = %d", ref_idc, nal_unit_type);
+
+    // Profile
+    if (pBitBuffer.GetBits(8, tmp_u32)) {
+        nProfile = tmp_u32;
+    }
+
+    LOGV("SPS profile_idc = %d", nProfile);
+
+    // Skip constraint_set[0..5]_flag and reserved_zero_2bits
+    pBitBuffer.SkipBits(8);
+
+    // Level
+    if (pBitBuffer.GetBits(8, tmp_u32)) {
+        nLevel = tmp_u32;
+    }
+    LOGV("SPS level_idc = %d", nLevel);
+
+    // seq_parameter_set_id
+    pBitBuffer.GetBits(8, tmp_u32);
+
+    if (nProfile == 100 || nProfile == 110 || nProfile == 122 ||
+            nProfile == 244 || nProfile == 44 || nProfile == 83 ||
+            nProfile == 86 || nProfile == 118 || nProfile == 128) {
+
+        uint32_t chroma_format_idc;
+        pBitBuffer.GetExpGolombUE(chroma_format_idc);
+        if (chroma_format_idc == 3) {
+            // separate_colour_plane_flag
+            pBitBuffer.SkipBits();
+        }
+        LOGV("SPS chroma_format_idc = %d", chroma_format_idc);
+
+        // bit_depth_luma_minus8
+        pBitBuffer.GetExpGolombUE(tmp_u32);
+
+        // bit_depth_chroma_minus8
+        pBitBuffer.GetExpGolombUE(tmp_u32);
+
+        // qpprime_y_zero_transform_bypass_flag
+        pBitBuffer.SkipBits();
+
+        // seq_scaling_matrix_present_flag
+        if (pBitBuffer.GetBit() == 1) {
+            size_t nScalingMatrixIdxs = (chroma_format_idc != 3) ? 8 : 12;
+
+            for (size_t nScalingMatrixIdx = 0;
+                    nScalingMatrixIdx < nScalingMatrixIdxs;
+                    nScalingMatrixIdx++) {
+                // seq_scaling_list_present_flag
+                if (pBitBuffer.GetBit() == 1) {
+                    // scaling_list
+                    int32_t delta_scale = 0;
+                    uint32_t lastScale = 8;
+                    uint32_t nextScale = 8;
+                    size_t nScalingListIdxs = (nScalingMatrixIdx < 6) ? 16 : 64;
+
+                    for (size_t nScalingListIdx = 0;
+                            nScalingListIdx < nScalingListIdxs;
+                            nScalingListIdx++) {
+                        if (nextScale != 0) {
+                            pBitBuffer.GetExpGolombSE(delta_scale);
+                            nextScale = (lastScale + delta_scale + 256) % 256;
+                            lastScale = nextScale;
+                        } else {
+                            // Terminating loop to avoid dummy cycles
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // log2_max_frame_num_minus4
+    pBitBuffer.GetExpGolombUE(tmp_u32);
+
+    uint32_t pic_order_cnt_type;
+    pBitBuffer.GetExpGolombUE(pic_order_cnt_type);
+    if (pic_order_cnt_type == 0) {
+        // log2_max_pic_order_cnt_lsb_minus4
+        pBitBuffer.GetExpGolombUE(tmp_u32);
+    } else if (pic_order_cnt_type == 0) {
+        // delta_pic_order_always_zero_flag
+        pBitBuffer.GetBit();
+
+        // offset_for_non_ref_pic
+        pBitBuffer.GetExpGolombSE(tmp_s32);
+
+        // offset_for_top_to_bottom_field
+        pBitBuffer.GetExpGolombSE(tmp_s32);
+
+        uint32_t num_ref_frames_in_pic_order_cnt_cycle;
+        pBitBuffer.GetExpGolombUE(num_ref_frames_in_pic_order_cnt_cycle);
+        for (uint32_t nOffsetRefFrameIdx = 0;
+                nOffsetRefFrameIdx < num_ref_frames_in_pic_order_cnt_cycle;
+                nOffsetRefFrameIdx++) {
+            // offset_for_ref_frame
+            pBitBuffer.GetExpGolombSE(tmp_s32);
+        }
+    }
+
+    // max_num_ref_frames
+    pBitBuffer.GetExpGolombUE(tmp_u32);
+
+    // gaps_in_frame_num_value_allowed_flag
+    pBitBuffer.GetBit();
+
+    // pic_width_in_mbs_minus1
+    pBitBuffer.GetExpGolombUE(tmp_u32);
+
+    // pic_height_in_map_units_minus1
+    pBitBuffer.GetExpGolombUE(tmp_u32);
+
+    // frame_mbs_only_flag
+    if (pBitBuffer.GetBit() == 0) {
+        // mb_adaptive_frame_field_flag
+        pBitBuffer.GetBit();
+    }
+
+    // direct_8x8_inference_flag
+    pBitBuffer.GetBit();
+
+    // frame_cropping_flag
+    if (pBitBuffer.GetBit() == 1) {
+        // frame_crop_left_offset
+        pBitBuffer.GetExpGolombUE(tmp_u32);
+        // frame_crop_right_offset
+        pBitBuffer.GetExpGolombUE(tmp_u32);
+        // frame_crop_top_offset
+        pBitBuffer.GetExpGolombUE(tmp_u32);
+        // frame_crop_bottom_offset
+        pBitBuffer.GetExpGolombUE(tmp_u32);
+    }
+
+    // vui_parameters_present_flag
+    if (pBitBuffer.GetBit() == 1) {
+        // aspect_ratio_info_present_flag
+        if (pBitBuffer.GetBit() == 1) {
+            uint32_t aspect_ratio_idc;
+            uint32_t sar_width = (uint32_t)-1;
+            uint32_t sar_height = (uint32_t)-1;
+            pBitBuffer.GetBits(8, aspect_ratio_idc);
+            if (aspect_ratio_idc < SARTableSize() || aspect_ratio_idc == SAR_IDC_EXTENDED) {
+                if (aspect_ratio_idc == SAR_IDC_EXTENDED) {
+                    pBitBuffer.GetBits(16, sar_width);
+                    pBitBuffer.GetBits(16, sar_height);
+                } else  {
+                    sar_height = SampleAspectRatio[aspect_ratio_idc].height;
+                    sar_width = SampleAspectRatio[aspect_ratio_idc].width;
+                }
+                pMeta->setInt32(kKeySARIdc, aspect_ratio_idc);
+                pMeta->setInt32(kKeySARWidth, sar_width);
+                pMeta->setInt32(kKeySARHeight, sar_height);
+                LOGV("SPS SAR %d:%d", sar_width, sar_height);
+            } else {
+                LOGW("Detected undefined value of sample aspect ration (aspect_ratio_idc = %d)",
+                     aspect_ratio_idc);
+            }
+        }
+    }
+
+    return OK;
+}
+
+status_t OMXCodec::parseAVCCodecSpecificData(const sp<MetaData> &meta,
+#else
 status_t OMXCodec::parseAVCCodecSpecificData(
+#endif
         const void *data, size_t size,
         unsigned *profile, unsigned *level) {
     const uint8_t *ptr = (const uint8_t *)data;
@@ -607,6 +801,10 @@ status_t OMXCodec::parseAVCCodecSpecificData(
         if (size < length) {
             return ERROR_MALFORMED;
         }
+
+#ifdef OMAP_ENHANCEMENT
+        parseSpsFrame(meta, ptr, length, *profile, *level);
+#endif
 
         addCodecSpecificData(ptr, length);
 
@@ -669,7 +867,11 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
 
             unsigned profile, level;
             status_t err;
+#ifdef OMAP_ENHANCEMENT
+            if ((err = parseAVCCodecSpecificData(meta,
+#else
             if ((err = parseAVCCodecSpecificData(
+#endif
                             data, size, &profile, &level)) != OK) {
                 LOGE("Malformed AVC codec specific data.");
                 return err;

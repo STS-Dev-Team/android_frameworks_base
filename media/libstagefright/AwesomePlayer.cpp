@@ -1130,6 +1130,22 @@ void AwesomePlayer::notifyVideoSize_l() {
         rotationDegrees = 0;
     }
 
+#ifdef OMAP_ENHANCEMENT
+    int32_t sarIdc, sarWidth, sarHeight;
+    if (mVideoTrack->getFormat()->findInt32(kKeySARIdc, &sarIdc) &&
+            sarIdc != SAR_IDC_UNSPECIFIED) {
+        if (mVideoTrack->getFormat()->findInt32(kKeySARWidth, &sarWidth) &&
+                mVideoTrack->getFormat()->findInt32(kKeySARHeight, &sarHeight)) {
+            LOGI("Output picture width will be recalculated according to SAR (%d:%d)",
+                    sarWidth, sarHeight);
+            usableWidth = (usableWidth * sarWidth) / sarHeight;
+        } else {
+            LOGW("Property kKeySARWidth or/and kKeySARHeight not defined");
+            mVideoTrack->getFormat()->setInt32(kKeySARIdc, SAR_IDC_UNSPECIFIED);
+        }
+    }
+#endif
+
     if (rotationDegrees == 90 || rotationDegrees == 270) {
         notifyListener_l(
                 MEDIA_SET_VIDEO_SIZE, usableHeight, usableWidth);
