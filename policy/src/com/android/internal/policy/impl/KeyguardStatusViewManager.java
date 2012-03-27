@@ -74,6 +74,7 @@ class KeyguardStatusViewManager implements OnClickListener {
     private static final int OWNER_INFO = 14;
     private static final int BATTERY_INFO = 15;
     private static final int WEATHER_INFO = 16;
+    private static final int CALENDAR_INFO = 17;
     private static final int COLOR_WHITE = 0xFFFFFFFF;
 
     public static final String EXTRA_CITY = "city";
@@ -112,7 +113,6 @@ class KeyguardStatusViewManager implements OnClickListener {
     private ArrayList<EventBundle> mCalendarEvents = null;
 
     private boolean mLockAlwaysBattery;
-    private boolean mLockLowBattery;
 
     // last known plugged in state
     private boolean mPluggedIn = false;
@@ -243,15 +243,11 @@ class KeyguardStatusViewManager implements OnClickListener {
 
         resetStatusInfo();
         refreshDate();
-        updateOwnerInfo();
-        updateWeatherInfo();
-        updateCalendar();
-        updateColors();
-        
+
         // Required to get Marquee to work.
         final View scrollableViews[] = {
                 mCarrierView, mDateView, mStatus1View, mOwnerInfoView,
-                mAlarmStatusView
+                mAlarmStatusView, mWeatherView, mCalendarView
         };
         for (View v : scrollableViews) {
             if (v != null) {
@@ -343,6 +339,10 @@ class KeyguardStatusViewManager implements OnClickListener {
                     break;
                 case WEATHER_INFO:
                     updateWeatherInfo();
+                    break;
+                case CALENDAR_INFO:
+                    updateCalendar();
+                    updateColors();
                     break;
                 default:
                     ;
@@ -467,44 +467,44 @@ class KeyguardStatusViewManager implements OnClickListener {
         if (calendarSources == null)
             calendarSources = "";
         try {
-            if (mCalendarEvents == null)
-                getCalendarEvents(resolver, calendarSources,
-                        multipleEventsEnabled, hideOnGoing, range);
-            
-            if (calendarEventsEnabled && mCalendarView != null) {
-                mCalendarView.removeAllViews();
-                Log.d(TAG, "we have " + String.valueOf(mCalendarEvents.size()) + " event(s)");
+            getCalendarEvents(resolver, calendarSources, multipleEventsEnabled, hideOnGoing, range);
 
-                for (EventBundle e : mCalendarEvents) {
-                    TextView tv = new TextView(getContext());
-                    tv.setText(e.title
-                            + (!e.dayString.isEmpty() ? e.dayString : "")
-                            + ((e.allDay) ? " all-day " : " at "
-                                    + DateFormat.format(
-                                            DateFormat.is24HourFormat(getContext()) ? "kk:mm"
-                                                    : "hh:mm a", e.begin).toString())
-                            + (!e.location.isEmpty() ? " (" + e.location + ")" : ""));
-                    tv.setTextAppearance(getContext(), android.R.attr.textAppearanceMedium);
-                    tv.setWidth((int) (findViewById(R.id.time).getWidth() * 1.2));
-                    tv.setSingleLine(true);
-                    tv.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
-                    tv.setGravity(android.view.Gravity.RIGHT);
-                    if (mCalendarUsingColors)
-                        tv.setTextColor(e.color);
-                    mCalendarView.addView(tv);
-                }
-                mCalendarView.setFlipInterval(interval);
-                mCalendarView.setVisibility(View.VISIBLE);
-                mCalendarView.bringChildToFront(mCalendarView.getChildAt(0));
-                if (!multipleEventsEnabled || mCalendarEvents.size() <= 1) {
-                    mCalendarView.stopFlipping();
+            if (mCalendarView != null) {
+                if (calendarEventsEnabled) {
+                    mCalendarView.removeAllViews();
+                    Log.d(TAG, "we have " + String.valueOf(mCalendarEvents.size()) + " event(s)");
+
+                    for (EventBundle e : mCalendarEvents) {
+                        TextView tv = new TextView(getContext());
+                        tv.setText(e.title
+                                + (!e.dayString.isEmpty() ? e.dayString : "")
+                                + ((e.allDay) ? " all-day " : " at "
+                                        + DateFormat.format(
+                                                DateFormat.is24HourFormat(getContext()) ? "kk:mm"
+                                                        : "hh:mm a", e.begin).toString())
+                                + (!e.location.isEmpty() ? " (" + e.location + ")" : ""));
+                        tv.setTextAppearance(getContext(), android.R.attr.textAppearanceMedium);
+                        tv.setWidth((int) (findViewById(R.id.time).getWidth() * 1.2));
+                        tv.setSingleLine(true);
+                        tv.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+                        tv.setGravity(android.view.Gravity.RIGHT);
+                        if (mCalendarUsingColors)
+                            tv.setTextColor(e.color);
+                        mCalendarView.addView(tv);
+                    }
+                    mCalendarView.setFlipInterval(interval);
+                    mCalendarView.setVisibility(View.VISIBLE);
+                    mCalendarView.bringChildToFront(mCalendarView.getChildAt(0));
+                    if (!multipleEventsEnabled || mCalendarEvents.size() <= 1) {
+                        mCalendarView.stopFlipping();
+                    } else {
+                        Log.d(TAG, "multiple events, flip that shit");
+                        mCalendarView.startFlipping();
+                    }
                 } else {
-                    Log.d(TAG, "multiple events, flip that shit");
-                    mCalendarView.startFlipping();
+                    Log.d(TAG, "hide calendar");
+                    mCalendarView.setVisibility(View.GONE);
                 }
-            } else {
-                Log.d(TAG, "hide calendar");
-                mCalendarView.setVisibility(View.GONE);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -535,8 +535,6 @@ class KeyguardStatusViewManager implements OnClickListener {
         CharSequence string = null;
         mLockAlwaysBattery = Settings.System.getInt(getContext().getContentResolver(),
                 Settings.System.LOCKSCREEN_BATTERY, 0) == 1;
-        mLockLowBattery = Settings.System.getInt(getContext().getContentResolver(),
-                Settings.System.LOCKSCREEN_LOW_BATTERY, 0) == 1;
         if (mShowingBatteryInfo || mLockAlwaysBattery) {
             // Battery status
             if (mPluggedIn) {
@@ -552,11 +550,10 @@ class KeyguardStatusViewManager implements OnClickListener {
                     // Battery is low
                     string = getContext().getString(R.string.lockscreen_low_battery);
                     icon.value = BATTERY_LOW_ICON;
-                    if (mLockLowBattery) {
-                        // Show battery at low percent
+                    if (mLockAlwaysBattery) {
+                        // Show battery at low percent	
                         string = getContext().getString(R.string.lockscreen_always_battery,
-                                mBatteryLevel);
-                        icon.value = BATTERY_ICON;
+                        icon.value = BATTERY_LOW_ICON);
                     }
                 } else {
                     // Always show battery
@@ -575,8 +572,6 @@ class KeyguardStatusViewManager implements OnClickListener {
         CharSequence string = null;
         mLockAlwaysBattery = Settings.System.getInt(getContext().getContentResolver(),
                 Settings.System.LOCKSCREEN_BATTERY, 0) == 1;
-        mLockLowBattery = Settings.System.getInt(getContext().getContentResolver(),
-                Settings.System.LOCKSCREEN_LOW_BATTERY, 0) == 1;
         if (!TextUtils.isEmpty(mInstructionText)) {
             // Instructions only
             string = mInstructionText;
@@ -596,11 +591,10 @@ class KeyguardStatusViewManager implements OnClickListener {
                     // Battery is low
                     string = getContext().getString(R.string.lockscreen_low_battery);
                     icon.value = BATTERY_LOW_ICON;
-                    if (mLockLowBattery) {
-                        // Show battery at low percent
+                    if (mLockAlwaysBattery) {
+                        // Show battery at low percent	
                         string = getContext().getString(R.string.lockscreen_always_battery,
-                                mBatteryLevel);
-                        icon.value = BATTERY_ICON;
+                        icon.value = BATTERY_LOW_ICON);
                     }
                 } else {
                     // Always show battery
@@ -834,6 +828,10 @@ class KeyguardStatusViewManager implements OnClickListener {
             update(WEATHER_INFO, null);
         }
 
+        public void onRefreshCalendarInfo() {
+            update(CALENDAR_INFO, null);
+        }
+
         public void onTimeChanged() {
             refreshDate();
         }
@@ -1002,7 +1000,11 @@ class KeyguardStatusViewManager implements OnClickListener {
         }, selection, null,
                 CalendarContract.Instances.START_DAY + " ASC, "
                         + CalendarContract.Instances.START_MINUTE + " ASC");
-
+        
+        if (eventCur.getCount() < 1) {
+            eventCur.close();
+            return;
+        }
         if (!multipleEvents) {
             eventCur.moveToFirst();
             mCalendarEvents.add(new EventBundle(eventCur.getString(0),
@@ -1036,7 +1038,6 @@ class KeyguardStatusViewManager implements OnClickListener {
             if (beginDay == today) { // today
                 dayString = "";
             } else if (today + 1 == beginDay || (today >= 365 && beginDay == 1)) { // tomorrow
-
                 dayString = ", Tomorrow";
             } else { // another day of week
                 dayString = ", "
