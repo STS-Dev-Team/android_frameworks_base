@@ -703,6 +703,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         mContext.sendOrderedBroadcast(upIntent, null);
     }
 
+    void handleFunctionKey(KeyEvent event) {
+        mBroadcastWakeLock.acquire();
+        mHandler.post(new PassFunctionKey(new KeyEvent(event)));
+    }
+
     private void interceptScreenshotChord() {
         if (mVolumeDownKeyTriggered && mPowerKeyTriggered && !mVolumeUpKeyTriggered) {
             final long now = SystemClock.uptimeMillis();
@@ -3039,6 +3044,12 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                         mVolumeUpKeyTriggered = false;
                         cancelPendingScreenshotChordAction();
                     }
+                } else if (keyCode == KeyEvent.KEYCODE_VOLUME_MUTE) {
+                    if (!down || keyguardActive)
+                        return 0;
+                    handleFunctionKey(event);
+                    result &= ~ACTION_PASS_TO_USER;
+                    break;
                 }
                 if (down) {
                     ITelephony telephonyService = getTelephonyService();
@@ -3284,11 +3295,6 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             }
         }
         return result;
-    }
-
-    void handleFunctionKey(KeyEvent event) {
-        mBroadcastWakeLock.acquire();
-        mHandler.post(new PassFunctionKey(new KeyEvent(event)));
     }
 
     void handleVolumeLongPress(int keycode) {
