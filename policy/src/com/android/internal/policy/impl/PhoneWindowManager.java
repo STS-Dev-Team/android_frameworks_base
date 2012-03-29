@@ -2728,7 +2728,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     {
         boolean flag = true;
         if (!mHallSensorFeature)
-            mLidOpen = LID_ABSENT;
+            /* FIXME-HASH: Fix keyboard bug for dock state -- will need to be fixed the right way in AOKP */
+            // mLidOpen = LID_ABSENT;
+            flag = false;
         else {
             if((mKeyboardDockFeature) && (mDockMode != Intent.EXTRA_DOCK_STATE_TF101_KB))
                 mLidOpen = LID_ABSENT;
