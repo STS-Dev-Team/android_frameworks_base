@@ -84,7 +84,11 @@ LOCAL_MODULE:= libvideoeditor_jni
 LOCAL_MODULE_TAGS := optional
 
 ifeq ($(OMAP_ENHANCEMENT), true)
+ifeq ($(ENHANCED_DOMX), true)
+LOCAL_C_INCLUDES += $(TOP)/hardware/ti/domx/omx_core/inc
+else
 LOCAL_C_INCLUDES += $(TOP)/hardware/ti/omap4xxx/domx/omx_core/inc
+endif
 endif
 
 include $(BUILD_SHARED_LIBRARY)
