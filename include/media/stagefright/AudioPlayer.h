@@ -23,7 +23,11 @@
 #include <media/stagefright/TimeSource.h>
 #include <utils/threads.h>
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT)
+#define OMAP_TIME_INTERPOLATOR
+#endif
+
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
 namespace omap_enhancement {
     class TimeInterpolator;
 }
@@ -118,7 +122,7 @@ private:
 
     AudioPlayer(const AudioPlayer &);
     AudioPlayer &operator=(const AudioPlayer &);
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     omap_enhancement::TimeInterpolator *mRealTimeInterpolator;
 public:
     int64_t latency() const;

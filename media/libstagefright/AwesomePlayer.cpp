@@ -78,7 +78,7 @@ static const size_t kHighWaterMarkBytes = 200000;
 
 */
 
-#ifdef OMAP_ENHANCEMENT
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
 
 /* The audio latency is typically 2x the buffer size set in the
  * AudioHAL.  The value here is only used as a default value in case
@@ -91,7 +91,7 @@ static const size_t kHighWaterMarkBytes = 200000;
 /* 320 ms */
 #define DEFAULT_AUDIO_LATENCY (40000 * 4 * 2)
 
-#endif /* OMAP_ENHANCEMENT */
+#endif /* OMAP_ENHANCEMENT && OMAP_TIME_INTERPOLATOR */
 
 #ifdef OMAP_ENHANCEMENT
 
@@ -718,7 +718,7 @@ void AwesomePlayer::onVideoLagUpdate() {
     }
     mVideoLagEventPending = false;
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     int64_t audioTimeUs = mAudioPlayer->getRealTimeUs();
 #else
     int64_t audioTimeUs = mAudioPlayer->getMediaTimeUs();
@@ -778,7 +778,7 @@ void AwesomePlayer::onBufferingUpdate() {
                     LOGI("cache is running low (< %d) , pausing.",
                          kLowWaterMarkBytes);
                     modifyFlags(CACHE_UNDERRUN, SET);
-#ifdef OMAP_ENHANCEMENT
+#if defined(OMAP_ENHANCEMENT) && defined(TIME_INTERPOLATOR)
                     // if cache is running low because of seek, wait for seek complete event to occur before pausing.
                     // pause causes all events to be cancelled and therefore the event MEDIA_SEEK_COMPLETE will be lost.
                     if (!mWatchForAudioSeekComplete) pause_l();
@@ -840,7 +840,7 @@ void AwesomePlayer::onBufferingUpdate() {
             LOGI("cache is running low (%.2f secs) , pausing.",
                  cachedDurationUs / 1E6);
             modifyFlags(CACHE_UNDERRUN, SET);
-#ifdef OMAP_ENHANCEMENT
+#if defined(OMAP_ENHANCEMENT) && defined(TIME_INTERPOLATOR)
             // if cache is running low because of seek, wait for seek complete event to occur before pausing.
             // pause causes all events to be cancelled and therefore the event MEDIA_SEEK_COMPLETE will be lost.
             if (!mWatchForAudioSeekComplete) pause_l();
@@ -1372,7 +1372,7 @@ status_t AwesomePlayer::getPosition(int64_t *positionUs) {
         Mutex::Autolock autoLock(mMiscStateLock);
         *positionUs = mVideoTimeUs;
     } else if (mAudioPlayer != NULL) {
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
         *positionUs = mAudioPlayer->getRealTimeUs();
 #else
         *positionUs = mAudioPlayer->getMediaTimeUs();
@@ -1872,7 +1872,7 @@ void AwesomePlayer::onVideoEvent() {
     if (wasSeeking == NO_SEEK) {
         // Let's display the first frame after seeking right away.
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
         int64_t nowUs = ts->getRealTimeUs();
 
         if (ts == (TimeSource*)&mSystemTimeSource) {
@@ -1907,7 +1907,7 @@ void AwesomePlayer::onVideoEvent() {
             mSeeking = SEEK_VIDEO_ONLY;
             mSeekTimeUs = mediaTimeUs;
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
             postVideoEvent_l(0);
 #else
             postVideoEvent_l();
@@ -1944,7 +1944,7 @@ void AwesomePlayer::onVideoEvent() {
                     ++mStats.mNumVideoFramesDropped;
                 }
 
-#ifdef OMAP_ENHANCEMENT
+#if defined(OMAP_ENHANCEMENT) && defined(TIME_INTERPOLATOR)
                 postVideoEvent_l(0);
 #else
                 postVideoEvent_l();
@@ -1956,7 +1956,7 @@ void AwesomePlayer::onVideoEvent() {
         if (latenessUs < -10000) {
             // We're more than 10ms early.
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
             /* We're early, so repost this video event with more
              * precise timing, but limit it to 100 ms.  This provides
              * better timing and uses less CPU than the default
@@ -1994,7 +1994,7 @@ void AwesomePlayer::onVideoEvent() {
         return;
     }
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     /* By having this at the end, this function is essentially
      * scheduling itself to be re-called.  The default behavior
      * [postVideoEvent_l()] is to schedule a call in 10 ms.  However,

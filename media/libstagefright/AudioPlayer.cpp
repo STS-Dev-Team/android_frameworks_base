@@ -17,7 +17,7 @@
 //#define LOG_NDEBUG 0
 #define LOG_TAG "AudioPlayer"
 #include <utils/Log.h>
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
 #include <time.h>
 #endif
 
@@ -32,7 +32,7 @@
 
 #include "include/AwesomePlayer.h"
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
 
 /* The audio latency is typically 2x the buffer size set in the
  * AudioHAL.  The value here is only used as a default value in case
@@ -47,7 +47,7 @@
 
 #endif /* OMAP_ENHANCEMENT */
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
 
 namespace omap_enhancement
 {
@@ -773,7 +773,7 @@ namespace omap_enhancement
 } /* namespace omap_enhancement */
 
 
-#endif /*  defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4) */
+#endif /*  defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR) */
 
 namespace android {
 
@@ -797,7 +797,7 @@ AudioPlayer::AudioPlayer(
       mFirstBuffer(NULL),
       mAudioSink(audioSink),
       mObserver(observer) {
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     mRealTimeInterpolator = new omap_enhancement::TimeInterpolator;
 #endif
 }
@@ -806,7 +806,7 @@ AudioPlayer::~AudioPlayer() {
     if (mStarted) {
         reset();
     }
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     delete mRealTimeInterpolator;
 #endif
 }
@@ -918,7 +918,7 @@ status_t AudioPlayer::start(bool sourceAlreadyStarted) {
         mAudioTrack->start();
     }
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     LOGI("mLatencyUs = %lld", mLatencyUs);
     mRealTimeInterpolator->set_latency(mLatencyUs);
 #endif
@@ -946,7 +946,7 @@ void AudioPlayer::pause(bool playPendingSamples) {
             mAudioTrack->pause();
         }
     }
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     if (playPendingSamples) {
         mRealTimeInterpolator->stop();
     } else {
@@ -958,7 +958,7 @@ void AudioPlayer::pause(bool playPendingSamples) {
 void AudioPlayer::resume() {
     CHECK(mStarted);
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     mRealTimeInterpolator->resume();
 #endif
 
@@ -1016,7 +1016,7 @@ void AudioPlayer::reset() {
     mReachedEOS = false;
     mFinalStatus = OK;
     mStarted = false;
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     mRealTimeInterpolator->reset();
 #endif
 }
@@ -1092,10 +1092,10 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
     bool postEOS = false;
     int64_t postEOSDelayUs = 0;
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     mRealTimeInterpolator->post_buffer( ((size / mFrameSize) * 1000000) / mSampleRate );
     mPositionTimeRealUs = mRealTimeInterpolator->get_stream_usecs();
-#endif // defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#endif // defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
 
     size_t size_done = 0;
     size_t size_remaining = size;
@@ -1135,7 +1135,7 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
                 mInputBuffer = mFirstBuffer;
                 mFirstBuffer = NULL;
                 err = mFirstBufferResult;
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined (OMAP_TIME_INTERPOLATOR)
                 mRealTimeInterpolator->seek(0);
 #endif
 
@@ -1190,7 +1190,7 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
             CHECK(mInputBuffer->meta_data()->findInt64(
                         kKeyTime, &mPositionTimeMediaUs));
 
-#if !(defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4))
+#if !(defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR))
             mPositionTimeRealUs =
                 ((mNumFramesPlayed + size_done / mFrameSize) * 1000000)
                     / mSampleRate;
@@ -1225,7 +1225,7 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
         size_remaining -= copy;
     }
 
-#if !(defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4))
+#if !(defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR))
     {
         Mutex::Autolock autoLock(mLock);
         mNumFramesPlayed += size_done / mFrameSize;
@@ -1245,7 +1245,7 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
 
 int64_t AudioPlayer::getRealTimeUs() {
     Mutex::Autolock autoLock(mLock);
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     return mRealTimeInterpolator->get_stream_usecs();
 #else
     return getRealTimeUsLocked();
@@ -1278,7 +1278,7 @@ int64_t AudioPlayer::getMediaTimeUs() {
     return mPositionTimeMediaUs + realTimeOffset;
 }
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
 int64_t AudioPlayer::latency() const
 {
     return mLatencyUs;
@@ -1289,7 +1289,7 @@ bool AudioPlayer::getMediaTimeMapping(
         int64_t *realtime_us, int64_t *mediatime_us) {
     Mutex::Autolock autoLock(mLock);
 
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     /* AwesomePlayer wants to make sure that the read pointer in
      * the codec is close to what the buffer "read pointer" is.
      */
@@ -1309,7 +1309,7 @@ status_t AudioPlayer::seekTo(int64_t time_us) {
     mPositionTimeRealUs = mPositionTimeMediaUs = -1;
     mReachedEOS = false;
     mSeekTimeUs = time_us;
-#if defined(OMAP_ENHANCEMENT) && defined(TARGET_OMAP4)
+#if defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR)
     mRealTimeInterpolator->seek(time_us);
 #endif
 
