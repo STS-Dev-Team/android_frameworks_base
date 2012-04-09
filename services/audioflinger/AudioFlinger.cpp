@@ -151,6 +151,9 @@ static const char *audio_interfaces[] = {
     "primary",
     "a2dp",
     "usb",
+#if defined(OMAP_ENHANCEMENT)
+    "wfd",
+#endif
 };
 #define ARRAY_SIZE(x) (sizeof((x))/sizeof(((x)[0])))
 
