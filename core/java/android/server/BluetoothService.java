@@ -82,6 +82,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import android.os.SystemProperties;
 
 public class BluetoothService extends IBluetooth.Stub {
     private static final String TAG = "BluetoothService";
@@ -2392,7 +2393,15 @@ public class BluetoothService extends IBluetooth.Stub {
     BluetoothDeviceProfileState addProfileState(String address, boolean setTrust) {
         BluetoothDeviceProfileState state =
             new BluetoothDeviceProfileState(mContext, address, this, mA2dpService, setTrust);
-        mDeviceProfileState.put(address, state);
+        if (SystemProperties.OMAP_ENHANCEMENT) {
+            BluetoothDeviceProfileState oldStateMachine  = mDeviceProfileState.put(address, state);
+            if (oldStateMachine != null) {
+                oldStateMachine.quit();
+                oldStateMachine = null;
+            }
+        } else {
+            mDeviceProfileState.put(address, state);
+        }
         state.start();
         return state;
     }
