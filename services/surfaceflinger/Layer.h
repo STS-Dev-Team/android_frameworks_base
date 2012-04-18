@@ -130,6 +130,10 @@ private:
 
     // binder thread, transaction thread
     mutable Mutex mLock;
+
+#ifdef OMAP_ENHANCEMENT
+    bool mTextureSizeTooLarge;
+#endif
 };
 
 // ---------------------------------------------------------------------------

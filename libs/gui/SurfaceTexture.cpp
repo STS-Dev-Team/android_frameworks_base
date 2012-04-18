@@ -804,17 +804,36 @@ status_t SurfaceTexture::updateTexImage() {
         }
 
         glBindTexture(mTexTarget, mTexName);
-        glEGLImageTargetTexture2DOES(mTexTarget, (GLeglImageOES)image);
+
+#ifdef OMAP_ENHANCEMENT
+        // DIRTY HACK: we need to indicate specifically if texture size exceeds hardware limitations,
+        // so that Layer class can skip trying to draw it. Should be removed once proper solution on
+        // how to handle 1080p + VSTAB on SGX540 be implemented
+        GLint maxTextureSize;
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
 
         bool failed = false;
+        if((mSlots[buf].mGraphicBuffer->getHeight() > (uint32_t)maxTextureSize) || (mSlots[buf].mGraphicBuffer->getWidth() > (uint32_t)maxTextureSize)) {
+            LOGE("updateTexImage: error creating texture since it's size doesn't meet hardware limitations");
+            failed = true;
+        } else {
+#endif
+        glEGLImageTargetTexture2DOES(mTexTarget, (GLeglImageOES)image);
+#ifdef OMAP_ENHANCEMENT
+        }
+#else
+        bool failed = false;
+#endif
         while ((error = glGetError()) != GL_NO_ERROR) {
             ST_LOGE("error binding external texture image %p (slot %d): %#04x",
                     image, buf, error);
             failed = true;
         }
+#ifndef OMAP_ENHANCEMENT
         if (failed) {
             return -EINVAL;
         }
+#endif
 
         if (mCurrentTexture != INVALID_BUFFER_SLOT) {
             if (mUseFenceSync) {
@@ -860,6 +879,15 @@ status_t SurfaceTexture::updateTexImage() {
         // it's safe to remove the buffer from the front of the queue.
         mQueue.erase(front);
         mDequeueCondition.signal();
+
+#ifdef OMAP_ENHANCEMENT
+        // DIRTY HACK: in case texture size exceeds hardware limitations, we return EFBIG error code
+        // so that Layer class can skip trying to draw it. Should be removed once proper solution on
+        // how to handle 1080p + VSTAB on SGX540 be implemented
+        if (failed) {
+            return -EFBIG;
+        }
+#endif
     } else {
         // We always bind the texture even if we don't update its contents.
         glBindTexture(mTexTarget, mTexName);
