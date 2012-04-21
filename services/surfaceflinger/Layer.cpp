@@ -62,7 +62,12 @@ Layer::Layer(SurfaceFlinger* flinger,
         mOpaqueLayer(true),
         mNeedsDithering(false),
         mSecure(false),
+#ifndef OMAP_ENHANCEMENT
         mProtectedByApp(false)
+#else
+        mProtectedByApp(false),
+        mTextureSizeTooLarge(false)
+#endif
 {
     mCurrentCrop.makeInvalid();
     glGenTextures(1, &mTextureName);
@@ -291,6 +296,16 @@ void Layer::onDraw(const Region& clip) const
         return;
     }
 
+#ifdef OMAP_ENHANCEMENT
+    // DIRTY HACK: if texture size exceeds hardware limitations, we draw black screen instead.
+    // Should be removed once proper solution on how to handle 1080p + VSTAB on SGX540 be implemented
+    if (mTextureSizeTooLarge) {
+        LOGW("Texture was not generated due to it's size, skipping redraw");
+        clearWithOpenGL(clip, 0, 0, 0, 1);
+        return;
+    }
+#endif
+
     if (!isProtected()) {
         glBindTexture(GL_TEXTURE_EXTERNAL_OES, mTextureName);
         GLenum filter = GL_NEAREST;
@@ -419,10 +434,26 @@ void Layer::lockPageFlip(bool& recomputeVisibleRegions)
             mFlinger->signalEvent();
         }
 
+#ifdef OMAP_ENHANCEMENT
+        // DIRTY HACK: we are not trying to draw texture if it's size exceeds hardware limitations.
+        // Should be removed once proper solution on how to handle 1080p + VSTAB on SGX540 be implemented
+        mTextureSizeTooLarge = false;
+        int err = 0;
+        if ((err = mSurfaceTexture->updateTexImage()) < NO_ERROR) {
+#else
         if (mSurfaceTexture->updateTexImage() < NO_ERROR) {
+#endif
             // something happened!
-            recomputeVisibleRegions = true;
-            return;
+#ifdef OMAP_ENHANCEMENT
+            if(err == -EFBIG) {
+                mTextureSizeTooLarge = true;
+            } else {
+#endif
+                recomputeVisibleRegions = true;
+                return;
+#ifdef OMAP_ENHANCEMENT
+            }
+#endif
         }
 
         // update the active buffer
