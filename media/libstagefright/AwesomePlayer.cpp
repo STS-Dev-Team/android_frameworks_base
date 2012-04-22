@@ -1135,7 +1135,8 @@ void AwesomePlayer::notifyVideoSize_l() {
     if (mVideoTrack->getFormat()->findInt32(kKeySARIdc, &sarIdc) &&
             sarIdc != SAR_IDC_UNSPECIFIED) {
         if (mVideoTrack->getFormat()->findInt32(kKeySARWidth, &sarWidth) &&
-                mVideoTrack->getFormat()->findInt32(kKeySARHeight, &sarHeight)) {
+                mVideoTrack->getFormat()->findInt32(kKeySARHeight, &sarHeight)
+                && sarWidth && sarHeight) {
             LOGI("Output picture width will be recalculated according to SAR (%d:%d)",
                     sarWidth, sarHeight);
             usableWidth = (usableWidth * sarWidth) / sarHeight;
