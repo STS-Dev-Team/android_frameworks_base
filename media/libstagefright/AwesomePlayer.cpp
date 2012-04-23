@@ -462,6 +462,17 @@ status_t AwesomePlayer::setDataSource_l(const sp<MediaExtractor> &extractor) {
 
     bool haveAudio = false;
     bool haveVideo = false;
+
+#ifdef OMAP_ENHANCEMENT
+    bool cachedASFStream = false;
+    if ((!strncasecmp("http://", mUri.string(), 7)
+            || !strncasecmp("https://", mUri.string(), 8))
+            && !strcasecmp(MEDIA_MIMETYPE_CONTAINER_ASF, mExtractorType)) {
+        cachedASFStream = true;
+    }
+
+    sp<MediaExtractor> tmpExtractor = extractor;
+#endif
     for (size_t i = 0; i < extractor->countTracks(); ++i) {
         sp<MetaData> meta = extractor->getTrackMetaData(i);
 
@@ -470,8 +481,23 @@ status_t AwesomePlayer::setDataSource_l(const sp<MediaExtractor> &extractor) {
 
         String8 mime = String8(_mime);
 
+#ifdef OMAP_ENHANCEMENT
+        if (cachedASFStream) {
+            if (createTrackExtractor(tmpExtractor,
+                    !strncasecmp(mime.string(), "video/", 6)
+                    ? TRACK_EXTRACTOR_VIDEO_TYPE
+                    : TRACK_EXTRACTOR_AUDIO_TYPE) != OK) {
+                LOGW("Fail to create separate extractor for Track %d", i);
+                tmpExtractor = extractor;
+            }
+        }
+#endif
         if (!haveVideo && !strncasecmp(mime.string(), "video/", 6)) {
+#ifdef OMAP_ENHANCEMENT
+            setVideoSource(tmpExtractor->getTrack(i));
+#else
             setVideoSource(extractor->getTrack(i));
+#endif
             haveVideo = true;
 
             // Set the presentation/display size
@@ -500,7 +526,11 @@ status_t AwesomePlayer::setDataSource_l(const sp<MediaExtractor> &extractor) {
                 stat->mMIME = mime.string();
             }
         } else if (!haveAudio && !strncasecmp(mime.string(), "audio/", 6)) {
+#ifdef OMAP_ENHANCEMENT
+            setAudioSource(tmpExtractor->getTrack(i));
+#else
             setAudioSource(extractor->getTrack(i));
+#endif
             haveAudio = true;
 
             {
@@ -2620,5 +2650,62 @@ void AwesomePlayer::modifyFlags(unsigned value, FlagMode mode) {
         mStats.mFlags = mFlags;
     }
 }
+
+#ifdef OMAP_ENHANCEMENT
+status_t AwesomePlayer::createTrackExtractor(sp<MediaExtractor> &trackExtractor, track_extractor_t type) {
+    sp<HTTPBase> connectingDataSource = HTTPBase::Create(
+            (mFlags & INCOGNITO)
+                ? HTTPBase::kFlagIncognito
+                : 0);
+
+
+    if (mUIDValid) {
+        connectingDataSource->setUID(mUID);
+    }
+
+    String8 cacheConfig;
+    bool disconnectAtHighwatermark;
+
+    NuCachedSource2::RemoveCacheSpecificHeaders(
+            &mUriHeaders, &cacheConfig, &disconnectAtHighwatermark);
+
+    mLock.unlock();
+    status_t err = connectingDataSource->connect(mUri, &mUriHeaders);
+    mLock.lock();
+
+    if (err != OK) {
+        connectingDataSource.clear();
+
+        LOGI("connectingDataSource->connect() returned %d", err);
+        return err;
+    }
+
+    sp<NuCachedSource2> cachedSource = new NuCachedSource2(
+                connectingDataSource,
+                cacheConfig.isEmpty() ? NULL : cacheConfig.string(),
+                disconnectAtHighwatermark);
+
+    connectingDataSource.clear();
+
+    if (cachedSource == NULL) {
+        return UNKNOWN_ERROR;
+    }
+
+    trackExtractor = MediaExtractor::Create(
+            cachedSource, NULL);
+
+    if (trackExtractor == NULL) {
+        return UNKNOWN_ERROR;
+    }
+
+    if (type == TRACK_EXTRACTOR_VIDEO_TYPE) {
+        mCachedSource.clear();
+        mCachedSource = cachedSource;
+        mExtractor = trackExtractor;
+    }
+
+    return OK;
+}
+#endif
 
 }  // namespace android
