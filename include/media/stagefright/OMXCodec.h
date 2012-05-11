@@ -71,7 +71,7 @@ class CBitBuffer {
     // Pointer to buffer
     const uint8_t *m_pBuffer;
     // Buffer size
-    size_t m_nBufferSize;
+    off_t m_nBufferSize;
     // Number of read bits
     uint8_t m_nBitsRead;
 
