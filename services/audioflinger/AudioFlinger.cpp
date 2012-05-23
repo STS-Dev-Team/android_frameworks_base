@@ -1368,9 +1368,6 @@ AudioFlinger::PlaybackThread::PlaybackThread(const sp<AudioFlinger>& audioFlinge
                                              uint32_t device)
     :   ThreadBase(audioFlinger, id, device),
         mMixBuffer(0), mSuspended(0), mBytesWritten(0), mOutput(output),
-#ifdef OMAP_ENHANCEMENT
-        mFmInplay(false),
-#endif
         mLastWriteTime(0), mNumWrites(0), mNumDelayedWrites(0), mInWrite(false)
 {
     snprintf(mName, kNameLength, "AudioOut_%d", id);
@@ -1927,11 +1924,7 @@ bool AudioFlinger::MixerThread::threadLoop()
             // put audio hardware into standby after short delay
             if UNLIKELY((!activeTracks.size() && systemTime() > standbyTime) ||
                         mSuspended) {
-#ifdef OMAP_ENHANCEMENT
-                if (!mStandby && !mFmInplay) {
-#else
                 if (!mStandby) {
-#endif
                     LOGV("Audio hardware entering standby, mixer %p, mSuspended %d\n", this, mSuspended);
                     mOutput->stream->common.standby(&mOutput->stream->common);
                     mStandby = true;
