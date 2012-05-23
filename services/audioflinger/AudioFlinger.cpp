@@ -1368,6 +1368,9 @@ AudioFlinger::PlaybackThread::PlaybackThread(const sp<AudioFlinger>& audioFlinge
                                              uint32_t device)
     :   ThreadBase(audioFlinger, id, device),
         mMixBuffer(0), mSuspended(0), mBytesWritten(0), mOutput(output),
+#ifdef OMAP_ENHANCEMENT
+        mFmInplay(false),
+#endif
         mLastWriteTime(0), mNumWrites(0), mNumDelayedWrites(0), mInWrite(false)
 {
     snprintf(mName, kNameLength, "AudioOut_%d", id);
@@ -1754,7 +1757,14 @@ status_t AudioFlinger::PlaybackThread::getRenderPosition(uint32_t *halFrames, ui
 
     return mOutput->stream->get_render_position(mOutput->stream, dspFrames);
 }
-
+#ifdef OMAP_ENHANCEMENT
+status_t AudioFlinger::PlaybackThread::setFMRxActive(bool state)
+{
+    LOGI("AudioFlinger::PlaybackThread::setFMRxActive,state =%x",state);
+    mFmInplay = state;
+    return NO_ERROR;
+}
+#endif
 uint32_t AudioFlinger::PlaybackThread::hasAudioSession(int sessionId)
 {
     Mutex::Autolock _l(mLock);
@@ -1925,7 +1935,11 @@ bool AudioFlinger::MixerThread::threadLoop()
             // put audio hardware into standby after short delay
             if UNLIKELY((!activeTracks.size() && systemTime() > standbyTime) ||
                         mSuspended) {
+#ifdef OMAP_ENHANCEMENT
+                if (!mStandby && !mFmInplay) {
+#else
                 if (!mStandby) {
+#endif
                     LOGV("Audio hardware entering standby, mixer %p, mSuspended %d\n", this, mSuspended);
                     mOutput->stream->common.standby(&mOutput->stream->common);
                     mStandby = true;
@@ -3273,6 +3287,21 @@ AudioFlinger::ThreadBase::TrackBase::TrackBase(
 
 AudioFlinger::ThreadBase::TrackBase::~TrackBase()
 {
+#ifdef OMAP_ENHANCEMENT
+    sp<AudioFlinger> audioFlinger;
+    // We have to use flinger's lock here to avoid race conditions between
+    // different threads inside one flinger. Even if mClient is NULL,
+    // the thread must be alive and we can use it to access flinger and
+    // it's lock.
+    if(mClient != NULL) {
+        audioFlinger = mClient->audioFlinger();
+    } else {
+        LOGW("mClient is NULL, flinger's mutex will be accessed through mThread");
+        sp<ThreadBase> thread = mThread.promote();
+        audioFlinger = thread->mAudioFlinger;
+    }
+    Mutex::Autolock _l(audioFlinger->mLock);
+#endif
     if (mCblk) {
         mCblk->~audio_track_cblk_t();   // destroy our shared-structure.
         if (mClient == NULL) {
@@ -3281,7 +3310,9 @@ AudioFlinger::ThreadBase::TrackBase::~TrackBase()
     }
     mCblkMemory.clear();            // and free the shared memory
     if (mClient != NULL) {
+#ifndef OMAP_ENHANCEMENT
         Mutex::Autolock _l(mClient->audioFlinger()->mLock);
+#endif
         mClient.clear();
     }
 }
@@ -5195,6 +5226,21 @@ status_t AudioFlinger::setStreamOutput(uint32_t stream, int output)
     return NO_ERROR;
 }
 
+#ifdef OMAP_ENHANCEMENT
+status_t AudioFlinger::setFMRxActive(bool state)
+{
+    LOGI("setFMRxActive() ");
+    // check calling permissions
+    if (!settingsAllowed()) {
+        return PERMISSION_DENIED;
+    }
+
+    for (uint32_t i = 0; i < mPlaybackThreads.size(); i++)
+        mPlaybackThreads.valueAt(i)->setFMRxActive(state);
+
+    return NO_ERROR;
+}
+#endif
 
 int AudioFlinger::newAudioSessionId()
 {
