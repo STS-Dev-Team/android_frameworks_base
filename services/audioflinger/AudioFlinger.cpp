@@ -5211,22 +5211,6 @@ status_t AudioFlinger::setStreamOutput(uint32_t stream, int output)
     return NO_ERROR;
 }
 
-#ifdef OMAP_ENHANCEMENT
-status_t AudioFlinger::setFMRxActive(bool state)
-{
-    LOGI("setFMRxActive() ");
-    // check calling permissions
-    if (!settingsAllowed()) {
-        return PERMISSION_DENIED;
-    }
-
-    for (uint32_t i = 0; i < mPlaybackThreads.size(); i++)
-        mPlaybackThreads.valueAt(i)->setFMRxActive(state);
-
-    return NO_ERROR;
-}
-#endif
-
 int AudioFlinger::newAudioSessionId()
 {
     return nextUniqueId();
