@@ -608,7 +608,7 @@ status_t OMXCodec::parseSpsFrame(const uint8_t *pData, size_t nSize,struct SpsDa
     LOGV("SPS level_idc = %d", pSpsData.level_idc);
 
     // seq_parameter_set_id
-    pBitBuffer.GetBits(8, tmp_u32);
+    pBitBuffer.GetExpGolombUE(tmp_u32);
 
     if (pSpsData.profile_idc == 100 || pSpsData.profile_idc == 110 ||
             pSpsData.profile_idc == 122 || pSpsData.profile_idc == 244 ||
