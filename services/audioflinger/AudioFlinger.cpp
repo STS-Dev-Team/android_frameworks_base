@@ -1757,14 +1757,6 @@ status_t AudioFlinger::PlaybackThread::getRenderPosition(uint32_t *halFrames, ui
 
     return mOutput->stream->get_render_position(mOutput->stream, dspFrames);
 }
-#ifdef OMAP_ENHANCEMENT
-status_t AudioFlinger::PlaybackThread::setFMRxActive(bool state)
-{
-    LOGI("AudioFlinger::PlaybackThread::setFMRxActive,state =%x",state);
-    mFmInplay = state;
-    return NO_ERROR;
-}
-#endif
 uint32_t AudioFlinger::PlaybackThread::hasAudioSession(int sessionId)
 {
     Mutex::Autolock _l(mLock);
