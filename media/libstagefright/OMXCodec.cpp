@@ -1426,8 +1426,8 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
                     pSpsData.vui_parameters.sar_width);
             mOutputFormat->setInt32(kKeySARHeight,
                     pSpsData.vui_parameters.sar_height);
-        }
 #endif
+        }
         status_t err = initNativeWindow();
         if (err != OK) {
             return err;
