@@ -112,7 +112,11 @@ LOCAL_C_INCLUDES := \
 LOCAL_CFLAGS := \
         -DOSCL_UNUSED_ARG=
 
+#ifdef OMAP_ENHANCEMENT
 LOCAL_MODULE := libstagefright_mp3dec_omx
+#else
+LOCAL_MODULE := libstagefright_mp3dec
+#endif
 
 LOCAL_ARM_MODE := arm
 
@@ -134,8 +138,13 @@ LOCAL_C_INCLUDES := \
 LOCAL_SHARED_LIBRARIES := \
         libstagefright libstagefright_omx libstagefright_foundation libutils
 
+#ifdef OMAP_ENHANCEMENT
 LOCAL_STATIC_LIBRARIES := \
         libstagefright_mp3dec_omx
+#else
+LOCAL_STATIC_LIBRARIES := \
+        libstagefright_mp3dec
+#endif
 
 LOCAL_MODULE := libstagefright_soft_mp3dec
 LOCAL_MODULE_TAGS := optional

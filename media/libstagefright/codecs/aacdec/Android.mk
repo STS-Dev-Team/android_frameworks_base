@@ -151,7 +151,11 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_ARM_MODE := arm
 
+#ifdef OMAP_ENHANCEMENT
 LOCAL_MODULE := libstagefright_aacdec_omx
+#else
+LOCAL_MODULE := libstagefright_aacdec
+#endif
 
 include $(BUILD_STATIC_LIBRARY)
 
@@ -168,8 +172,13 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_CFLAGS := -DOSCL_IMPORT_REF=
 
+#ifdef OMAP_ENHANCEMENT
 LOCAL_STATIC_LIBRARIES := \
         libstagefright_aacdec_omx
+#else
+LOCAL_STATIC_LIBRARIES := \
+        libstagefright_aacdec
+#endif
 
 LOCAL_SHARED_LIBRARIES := \
         libstagefright_omx libstagefright_foundation libutils

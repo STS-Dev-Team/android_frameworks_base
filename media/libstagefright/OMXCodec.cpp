@@ -481,11 +481,6 @@ uint32_t OMXCodec::getComponentQuirks(
         quirks |= kRequiresFlushCompleteEmulation;
         quirks |= kSupportsMultipleFramesPerInputBuffer;
     }
-#ifdef QCOM_HARDWARE
-    if (!strcmp(componentName, "OMX.qcom.audio.encoder.evrc")) {
-        quirks |= kRequiresAllocateBufferOnInputPorts;
-        quirks |= kRequiresAllocateBufferOnOutputPorts;
-    }
 
 #ifdef OMAP_ENHANCEMENT
     if (!strcmp(componentName, "OMX.ITTIAM.WMA.decode")) {
@@ -501,6 +496,12 @@ uint32_t OMXCodec::getComponentQuirks(
         quirks |= kRequiresFlushCompleteEmulation;
     }
 #endif
+#ifdef QCOM_HARDWARE
+    if (!strcmp(componentName, "OMX.qcom.audio.encoder.evrc")) {
+        quirks |= kRequiresAllocateBufferOnInputPorts;
+        quirks |= kRequiresAllocateBufferOnOutputPorts;
+    }
+
     if (!strcmp(componentName, "OMX.qcom.audio.encoder.qcelp13")) {
         quirks |= kRequiresAllocateBufferOnInputPorts;
         quirks |= kRequiresAllocateBufferOnOutputPorts;
@@ -1987,6 +1988,7 @@ status_t OMXCodec::setupH263EncoderParameters(const sp<MetaData>& meta) {
     h263type.nAllowedPictureTypes =
         OMX_VIDEO_PictureTypeI | OMX_VIDEO_PictureTypeP;
 
+    h263type.nPFrames = setPFramesSpacing(iFramesInterval, frameRate);
     if (h263type.nPFrames == 0) {
         h263type.nAllowedPictureTypes = OMX_VIDEO_PictureTypeI;
     }
