@@ -1164,8 +1164,9 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
 
             CHECK(meta->findData(kKeyVorbisBooks, &type, &data, &size));
             addCodecSpecificData(data, size);
+        }
 #ifdef OMAP_ENHANCEMENT
-        } else if (meta->findData(kKeyHdr, &type, &data, &size)) {
+        else if (meta->findData(kKeyHdr, &type, &data, &size)) {
             CODEC_LOGV("Codec specific information of size %d", size);
             addCodecSpecificData(data, size);
         }
@@ -1183,7 +1184,7 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
         }
 #endif
 #ifdef QCOM_HARDWARE
-        } else if (meta->findData(kKeyRawCodecSpecificData, &type, &data, &size)) {
+        else if (meta->findData(kKeyRawCodecSpecificData, &type, &data, &size)) {
             LOGV("OMXCodec::configureCodec found kKeyRawCodecSpecificData of size %d\n", size);
             addCodecSpecificData(data, size);
         }
@@ -1307,33 +1308,33 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
             if(!strcmp(mComponentName, "OMX.TI.DUCATI1.VIDEO.DECODER")) {
                 /* save video FPS */
                 if (!(meta->findInt32(kKeyVideoFPS, &mVideoFPS))) {
-                mVideoFPS = 30; //default value in case of FPS data not found
+                    mVideoFPS = 30; //default value in case of FPS data not found
                 }
             }
 
-        if(mFlags & kEnableTimeStampInDecodeOrder) {
+            if(mFlags & kEnableTimeStampInDecodeOrder) {
             /* For WMV, AVI clips no CTTS structure available to support b-frames.
              * Hecne request codec to order frames as per decode order  */
 
-            OMX_INDEXTYPE index;
-            status_t err = mOMX->getExtensionIndex(
+                OMX_INDEXTYPE index;
+                status_t err = mOMX->getExtensionIndex(
                         mNode,
                         (OMX_STRING) "OMX_TI_IndexParamTimeStampInDecodeOrder",
                         &index);
 
-            CODEC_LOGV("for %s clip, got OMX_TI_IndexParamTimeStampInDecodeOrder \
-                index as 0x%x err 0x%x",mMIME, index, err);
+                CODEC_LOGV("for %s clip, got OMX_TI_IndexParamTimeStampInDecodeOrder \
+                    index as 0x%x err 0x%x",mMIME, index, err);
 
-            if (err == OK) {
-                OMX_TI_PARAM_TIMESTAMP_IN_DECODE_ORDER params;
-                InitOMXParams(&params);
-                params.bEnabled = OMX_TRUE;
-                err = mOMX->setParameter(
+                if (err == OK) {
+                    OMX_TI_PARAM_TIMESTAMP_IN_DECODE_ORDER params;
+                    InitOMXParams(&params);
+                    params.bEnabled = OMX_TRUE;
+                    err = mOMX->setParameter(
                                 mNode, index, &params, sizeof(params));
-                CODEC_LOGV("OMX_SetParameter() status for  \
-                    OMX_TI_PARAM_TIMESTAMP_IN_DECODE_ORDER: 0x%08x", err);
+                    CODEC_LOGV("OMX_SetParameter() status for  \
+                        OMX_TI_PARAM_TIMESTAMP_IN_DECODE_ORDER: 0x%08x", err);
+                }
             }
-        }
 #endif
             status_t err = setVideoOutputFormat(
                     mMIME, width, height);
@@ -1468,8 +1469,8 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
                     pSpsData.vui_parameters.sar_width);
             mOutputFormat->setInt32(kKeySARHeight,
                     pSpsData.vui_parameters.sar_height);
-#endif
         }
+#endif
         status_t err = initNativeWindow();
         if (err != OK) {
             return err;
