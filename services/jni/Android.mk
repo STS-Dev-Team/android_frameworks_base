@@ -41,6 +41,10 @@ ifeq ($(WITH_MALLOC_LEAK_CHECK),true)
     LOCAL_CFLAGS += -DMALLOC_LEAK_CHECK
 endif
 
+ifeq ($(MOTO_PERCENT_BATTERY_MOD),true)
+    LOCAL_CFLAGS += -DMOTO_PERCENT_BATTERY_MOD
+endif
+
 LOCAL_MODULE:= libandroid_servers
 
 include $(BUILD_SHARED_LIBRARY)
