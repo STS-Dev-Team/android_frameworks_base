@@ -1923,6 +1923,13 @@ public final class Settings {
         public static final String SHOW_TOUCHES = "show_touches";
 
         /**
+         * The keylayout that will be used by EventHub instead of the default
+         * one.
+	 * @hide
+         */
+        public static final String KEYLAYOUT_OVERRIDES = "keylayout";
+
+        /**
          * Log raw orientation data from {@link WindowOrientationListener} for use with the
          * orientationplot.py tool.
          * 0 = no
@@ -2112,6 +2119,7 @@ public final class Settings {
             SIP_CALL_OPTIONS,
             SIP_RECEIVE_CALLS,
             POINTER_SPEED,
+            KEYLAYOUT_OVERRIDES,
         };
 
         // Settings moved to Settings.Secure
@@ -2713,7 +2721,13 @@ public final class Settings {
          * @hide
          */
         public static final String VOLUME_MUSIC_CONTROLS = "volume_music_controls";
-        
+
+        /**
+         * Whether to show the stock music layout on the lockscreen
+         * @hide
+         */
+        public static final String LOCKSCREEN_STOCK_MUSIC_LAYOUT = "lockscreen_stock_music_layout";
+
         /**
          * Setting to allow % on lockscreen always showing.
          * @hide
@@ -5011,7 +5025,7 @@ public final class Settings {
             MOUNT_UMS_NOTIFY_ENABLED,
             UI_NIGHT_MODE,
             LOCK_SCREEN_OWNER_INFO,
-            LOCK_SCREEN_OWNER_INFO_ENABLED
+            LOCK_SCREEN_OWNER_INFO_ENABLED,
         };
 
         /**
