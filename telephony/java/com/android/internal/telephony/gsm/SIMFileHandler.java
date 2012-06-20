@@ -24,6 +24,8 @@ import com.android.internal.telephony.IccCardApplication;
 import com.android.internal.telephony.IccConstants;
 import com.android.internal.telephony.IccFileHandler;
 import com.android.internal.telephony.Phone;
+import com.android.internal.telephony.TelephonyProperties;
+import android.os.SystemProperties;
 
 /**
  * {@hide}
@@ -31,6 +33,7 @@ import com.android.internal.telephony.Phone;
 public final class SIMFileHandler extends IccFileHandler implements IccConstants {
     static final String LOG_TAG = "GSM";
     private Phone mPhone;
+    private boolean mMotoNewArch = false;
 
     //***** Instance Variables
 
@@ -39,6 +42,7 @@ public final class SIMFileHandler extends IccFileHandler implements IccConstants
     SIMFileHandler(GSMPhone phone) {
         super(phone);
         mPhone = phone;
+        mMotoNewArch = SystemProperties.getBoolean(TelephonyProperties.PROPERTY_MOTO_NEWARCH, false);
     }
 
     public void dispose() {
@@ -57,6 +61,15 @@ public final class SIMFileHandler extends IccFileHandler implements IccConstants
     }
 
     protected String getEFPath(int efid) {
+        if (mMotoNewArch) {
+            switch(efid) {
+            case EF_CSIM_SF_EUIMID:
+                return MF_SIM + DF_ADFISIM;
+            case EF_OPL:
+                return MF_SIM + DF_GSM;
+            }
+        }
+
         // TODO(): DF_GSM can be 7F20 or 7F21 to handle backward compatibility.
         // Implement this after discussion with OEMs.
         switch(efid) {
