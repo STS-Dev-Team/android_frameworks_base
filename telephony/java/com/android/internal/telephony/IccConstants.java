@@ -68,8 +68,11 @@ public interface IccConstants {
     static final int EF_CSIM_SPN =0x6F41;
     static final int EF_CSIM_MDN = 0x6F44;
     static final int EF_CSIM_IMSIM = 0x6F22;
+    static final int EF_IMSI_M = 0x6F22;
     static final int EF_CSIM_CDMAHOME = 0x6F28;
     static final int EF_CSIM_EPRL = 0x6F5A;
+    // FIXME-HASH: Added for Motorola
+    static final int EF_CSIM_SF_EUIMID = 0x6F74;
 
     //ISIM access
     static final int EF_IMPU = 0x6f04;
