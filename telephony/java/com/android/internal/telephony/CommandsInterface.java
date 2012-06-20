@@ -1641,4 +1641,9 @@ public interface CommandsInterface {
      * @param response a callback message with the String response in the obj field
      */
     public void requestIsimAuthentication(String nonce, Message response);
+
+    /* FIXME HASH: Added Motorola Code */
+    public void setOnUnsolOemHookRaw(Handler handler, int i, Object obj);
+    public void unSetOnUnsolOemHookRaw(Handler h);
+
 }
