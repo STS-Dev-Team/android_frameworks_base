@@ -64,13 +64,13 @@ public class WeatherPanel extends FrameLayout {
             if (mConditionImage != null) {
                 String condition_filename = "weather_" + mCondition_code;
                 int resID = getResources().getIdentifier(condition_filename, "drawable",
-                        mContext.getPackageName());
+                        "android");
                 Log.d("Weather", "Condition:" + mCondition_code + " ID:" + resID);
                 if (resID != 0) {
                     mConditionImage.setImageDrawable(getResources().getDrawable(resID));
                 } else {
                     mConditionImage.setImageDrawable(getResources().getDrawable(
-                            R.drawable.weather_na));
+                            com.android.internal.R.drawable.weather_na));
                 }
             }
         }
@@ -83,9 +83,11 @@ public class WeatherPanel extends FrameLayout {
             Intent weatherintent = new Intent("com.aokp.romcontrol.INTENT_WEATHER_REQUEST");
 
             if (v.getId() == R.id.condition_image) {
-                weatherintent.putExtra(android.content.Intent.EXTRA_TEXT, "startapp");
+                weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_TYPE", "startapp");
+                weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_ISMANUAL", true);
             } else {
-                weatherintent.putExtra(android.content.Intent.EXTRA_TEXT, "updateweather");
+                weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_TYPE", "updateweather");
+                weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_ISMANUAL", true);
             }
 
             v.getContext().sendBroadcast(weatherintent);

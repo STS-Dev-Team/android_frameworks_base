@@ -28,6 +28,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -60,11 +61,14 @@ import android.provider.Settings;
 
 import com.android.internal.R;
 import com.android.internal.app.ShutdownThread;
+import com.android.internal.os.DeviceKeyHandler;
 import com.android.internal.policy.PolicyManager;
 import com.android.internal.statusbar.IStatusBarService;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.view.BaseInputHandler;
 import com.android.internal.widget.PointerLocationView;
+
+import dalvik.system.DexClassLoader;
 
 import android.util.DisplayMetrics;
 import android.util.EventLog;
@@ -144,6 +148,7 @@ import java.io.FileDescriptor;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -255,6 +260,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         sApplicationLaunchKeyCategories.append(
                 KeyEvent.KEYCODE_CALCULATOR, Intent.CATEGORY_APP_CALCULATOR);
     }
+
+    DeviceKeyHandler mDeviceKeyHandler;
 
     /**
      * Lock protecting internal state.  Must not call out into window
@@ -961,6 +968,33 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         } else {
             screenTurnedOff(WindowManagerPolicy.OFF_BECAUSE_OF_USER);
         }
+
+        // if we have code for the key handler then load it in
+        String deviceKeyHandlerLib = mContext.getResources().getString(
+                com.android.internal.R.string.config_deviceKeyHandlerLib);
+
+        String deviceKeyHandlerClass = mContext.getResources().getString(
+                com.android.internal.R.string.config_deviceKeyHandlerClass);
+
+        if (!deviceKeyHandlerLib.equals("") && !deviceKeyHandlerClass.equals("")) {
+            DexClassLoader loader =  new DexClassLoader(deviceKeyHandlerLib,
+                    new ContextWrapper(mContext).getCacheDir().getAbsolutePath(),
+                    null,
+                    ClassLoader.getSystemClassLoader());
+            try {
+                Class<?> klass = loader.loadClass(deviceKeyHandlerClass);
+                Constructor<?> constructor = klass.getConstructor(Context.class);
+                mDeviceKeyHandler = (DeviceKeyHandler) constructor.newInstance(
+                        mContext);
+                Slog.d(TAG, "KeyHandler: Loaded device key handler");
+            } catch (Exception e) {
+                Slog.d(TAG, "KeyHandler: Could not instantiate device key handler "
+                        + deviceKeyHandlerClass + " from class "
+                        + deviceKeyHandlerLib, e);
+            }
+        } else {
+            Slog.d(TAG, "KeyHandler: Did not find a device key handler");
+        }
     }
 
     public void setInitialDisplaySize(int width, int height) {
@@ -1659,6 +1693,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         final boolean down = event.getAction() == KeyEvent.ACTION_DOWN;
         final boolean canceled = event.isCanceled();
 
+        Log.d(TAG, "KeyHandler: Got key event " + keyCode);
+
         if (false) {
             Log.d(TAG, "interceptKeyTi keyCode=" + keyCode + " down=" + down + " repeatCount="
                     + repeatCount + " keyguardOn=" + keyguardOn + " mHomePressed=" + mHomePressed);
@@ -1895,6 +1931,17 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             showOrHideRecentAppsDialog(RECENT_APPS_BEHAVIOR_DISMISS_AND_SWITCH);
         }
 
+        Slog.d(TAG, "KeyHandler: Trying to dispatch event to device key handler");
+        if (mDeviceKeyHandler != null) {
+            Slog.d(TAG, "KeyHandler: Have key hander, now dispatching");
+
+            try {
+                return mDeviceKeyHandler.handleKeyEvent(event);
+            } catch (Exception e) {
+                Slog.d(TAG, "Could not dispatch event to device key handler", e);
+            }
+        }
+
         // Let the application handle the key.
         return 0;
     }
@@ -1913,7 +1960,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     + ", policyFlags=" + policyFlags);
         }
 
+        Slog.d(TAG, "KeyHandler: dispatchUnhandledKey fired");
+
         if ((event.getFlags() & KeyEvent.FLAG_FALLBACK) == 0) {
+            Slog.d(TAG, "KeyHandler: Fallback init");
             final KeyCharacterMap kcm = event.getKeyCharacterMap();
             final int keyCode = event.getKeyCode();
             final int metaState = event.getMetaState();
@@ -1932,8 +1982,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                         event.getRepeatCount(), mFallbackAction.metaState,
                         event.getDeviceId(), event.getScanCode(),
                         flags, event.getSource(), null);
+                Slog.d(TAG, "KeyHandler: Calling interceptKeyBeforeQueueing");
                 int actions = interceptKeyBeforeQueueing(fallbackEvent, policyFlags, true);
                 if ((actions & ACTION_PASS_TO_USER) != 0) {
+                    Slog.d(TAG, "KeyHandler: Calling interceptKeyBeforeDispatching");
                     long delayMillis = interceptKeyBeforeDispatching(
                             win, fallbackEvent, policyFlags);
                     if (delayMillis == 0) {
@@ -2918,10 +2970,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             return 0;
         }
 
-        if (false) {
-            Log.d(TAG, "interceptKeyTq keycode=" + keyCode
+        //if (false) {
+            Log.d(TAG, "KeyHandler: interceptKeyTq keycode=" + keyCode
                   + " screenIsOn=" + isScreenOn + " keyguardActive=" + keyguardActive);
-        }
+        //}
 
         if (down && (policyFlags & WindowManagerPolicy.FLAG_VIRTUAL) != 0
                 && event.getRepeatCount() == 0) {
@@ -2939,6 +2991,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         int result;
         if (isScreenOn || isInjected) {
             // When the screen is on or if the key is injected pass the key to the application.
+            Log.d(TAG, "KeyHandler: Passing event to user");
             result = ACTION_PASS_TO_USER;
         } else {
             // When the screen is off and the key is not injected, determine whether
