@@ -259,6 +259,7 @@ AwesomePlayer::AwesomePlayer()
 #ifdef OMAP_ENHANCEMENT
       mExtractorType(NULL),
       mExtractor(NULL),
+      mIsWidevineStreaming(false),
 #endif
       mVideoBuffer(NULL),
       mDecryptHandle(NULL),
@@ -502,7 +503,8 @@ status_t AwesomePlayer::setDataSource_l(const sp<MediaExtractor> &extractor) {
     bool cachedASFStream = false;
     if ((!strncasecmp("http://", mUri.string(), 7)
             || !strncasecmp("https://", mUri.string(), 8))
-            && !strcasecmp(MEDIA_MIMETYPE_CONTAINER_ASF, mExtractorType)) {
+            && !strcasecmp(MEDIA_MIMETYPE_CONTAINER_ASF, mExtractorType)
+            && !mIsWidevineStreaming) {
         cachedASFStream = true;
     }
 
@@ -1789,8 +1791,11 @@ status_t AwesomePlayer::initVideoDecoder(uint32_t flags) {
 #ifdef OMAP_ENHANCEMENT
     sp<MetaData> fileMetadata = mExtractor->getMetaData();
     bool isAvailable = fileMetadata->findCString(kKeyMIMEType, &mExtractorType);
+    int32_t isGeneric = 0;
+    bool hasSourceType = fileMetadata->findInt32(kKeyGenericMPEG4, &isGeneric);
     bool have_delta_table = true;
-    if (!strcasecmp("video/mp4", mExtractorType)) {
+    if (!strcasecmp("video/mp4", mExtractorType)
+            && hasSourceType && isGeneric != 0) {
         struct MediaSourceWithHaveDeltaTable *msdt =
                 static_cast<MediaSourceWithHaveDeltaTable*>(mVideoTrack.get());
         have_delta_table = msdt->haveDeltaTable();
@@ -2417,9 +2422,15 @@ status_t AwesomePlayer::prepareAsync_l() {
 status_t AwesomePlayer::finishSetDataSource_l() {
     sp<DataSource> dataSource;
 
+#ifndef OMAP_ENHANCEMENT
     bool isWidevineStreaming = false;
+#endif
     if (!strncasecmp("widevine://", mUri.string(), 11)) {
+#ifdef OMAP_ENHANCEMENT
+        mIsWidevineStreaming = true;
+#else
         isWidevineStreaming = true;
+#endif
 
         String8 newURI = String8("http://");
         newURI.append(mUri.string() + 11);
@@ -2431,7 +2442,11 @@ status_t AwesomePlayer::finishSetDataSource_l() {
 
     if (!strncasecmp("http://", mUri.string(), 7)
             || !strncasecmp("https://", mUri.string(), 8)
+#ifdef OMAP_ENHANCEMENT
+            || mIsWidevineStreaming) {
+#else
             || isWidevineStreaming) {
+#endif
         mConnectingDataSource = HTTPBase::Create(
                 (mFlags & INCOGNITO)
                     ? HTTPBase::kFlagIncognito
@@ -2457,7 +2472,11 @@ status_t AwesomePlayer::finishSetDataSource_l() {
             return err;
         }
 
+#ifdef OMAP_ENHANCEMENT
+        if (!mIsWidevineStreaming) {
+#else
         if (!isWidevineStreaming) {
+#endif
             // The widevine extractor does its own caching.
 
 #if 0
@@ -2565,7 +2584,11 @@ status_t AwesomePlayer::finishSetDataSource_l() {
 
     sp<MediaExtractor> extractor;
 
+#ifdef OMAP_ENHANCEMENT
+    if (mIsWidevineStreaming) {
+#else
     if (isWidevineStreaming) {
+#endif
         String8 mimeType;
         float confidence;
         sp<AMessage> dummy;
