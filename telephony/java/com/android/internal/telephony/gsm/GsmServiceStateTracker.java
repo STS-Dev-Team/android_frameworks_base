@@ -484,6 +484,7 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
 
     protected void updateSpnDisplay() {
 	if (phone == null) return;
+	if (phone.mIccRecords == null) return;
         int rule = phone.mIccRecords.getDisplayRule(ss.getOperatorNumeric());
         String spn = phone.mIccRecords.getServiceProviderName();
         String plmn = ss.getOperatorAlphaLong();
