@@ -20,9 +20,11 @@ import com.android.internal.app.IBatteryStats;
 import com.android.server.am.BatteryStatsService;
 
 import android.app.ActivityManagerNative;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.os.BatteryManager;
@@ -114,6 +116,9 @@ class BatteryService extends Binder {
     private boolean mLastBatteryLevelCritical;
     private int mLastInvalidCharger;
 
+    private int mLastDockBatteryStatus;
+    private int mLastDockBatteryLevel;
+
     private int mLowBatteryWarningLevel;
     private int mLowBatteryCloseWarningLevel;
 
@@ -149,6 +154,10 @@ class BatteryService extends Binder {
 
         SettingsObserver observer = new SettingsObserver(new Handler());
         observer.observe();
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_DOCK_EVENT);
+        mContext.registerReceiver(mDockBroadcastReceiver, filter);
 
         // set initial status
         update();
@@ -203,6 +212,22 @@ class BatteryService extends Binder {
     // returns battery level as a percentage
     final int getBatteryLevel() {
         return mBatteryLevel;
+    }
+
+    final int getDockBatteryLevel()
+    {
+        if (!mHasDockBattery)
+            return -1;
+
+        return mDockBatteryLevel;
+    }
+
+    final int getDockBatteryStatus()
+    {
+        if (!mHasDockBattery)
+            return -1;
+
+        return mDockBatteryStatus;
     }
 
     void systemReady() {
@@ -272,7 +297,9 @@ class BatteryService extends Binder {
                 mPlugType != mLastPlugType ||
                 mBatteryVoltage != mLastBatteryVoltage ||
                 mBatteryTemperature != mLastBatteryTemperature ||
-                mInvalidCharger != mLastInvalidCharger) {
+                mInvalidCharger != mLastInvalidCharger ||
+                mDockBatteryStatus != mLastDockBatteryStatus ||
+                mDockBatteryLevel != mLastDockBatteryLevel) {
 
             if (mPlugType != mLastPlugType) {
                 if (mLastPlugType == BATTERY_PLUGGED_NONE) {
@@ -373,6 +400,8 @@ class BatteryService extends Binder {
             mLastBatteryTemperature = mBatteryTemperature;
             mLastBatteryLevelCritical = mBatteryLevelCritical;
             mLastInvalidCharger = mInvalidCharger;
+            mLastDockBatteryStatus = mDockBatteryStatus;
+            mLastDockBatteryLevel = mDockBatteryLevel;
         }
     }
 
@@ -551,6 +580,24 @@ class BatteryService extends Binder {
     private synchronized void updateLedPulse() {
         mLed.updateLightsLocked();
     }
+
+    private BroadcastReceiver mDockBroadcastReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            final int state = intent.getIntExtra(Intent.EXTRA_DOCK_STATE,
+                                                 Intent.EXTRA_DOCK_STATE_UNDOCKED);
+
+            Slog.d(TAG, "Got dock event, state = " + state + ", hasDockBatter: " + mHasDockBattery);
+            if (mHasDockBattery && state != Intent.EXTRA_DOCK_STATE_UNDOCKED)
+            {
+                Slog.d(TAG, "Updating battery from dock intent");
+                update();
+            }
+        }
+
+    };
 
     class Led {
         private LightsService mLightsService;
