@@ -198,4 +198,9 @@ public interface TelephonyProperties
      * for handling LTE/CDMA/GSM
      */
     static final String PROPERTY_MOTO_NEWARCH = "ro.ril.moto.newarch";
+
+    /**
+     * Set to true to indicates support for simultaneous voice and data.
+     */
+    static final String PROPERTY_SVDATA = "ro.config.svlte1x";
 }
