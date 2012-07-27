@@ -109,13 +109,17 @@ endif
 
 LOCAL_C_INCLUDES+= \
 	$(JNI_H_INCLUDE) \
-        $(TOP)/frameworks/base/include/media/stagefright/openmax \
+	$(TOP)/frameworks/base/include/media/stagefright/openmax \
         $(TOP)/external/flac/include \
         $(TOP)/external/tremolo \
         $(TOP)/external/openssl/include \
 
 ifeq ($(OMAP_ENHANCEMENT), true)
+ifeq ($(ENHANCED_DOMX), true)
+LOCAL_C_INCLUDES += $(TOP)/hardware/ti/domx/omx_core/inc
+else
 LOCAL_C_INCLUDES += $(TOP)/hardware/ti/omap4xxx/domx/omx_core/inc
+endif
 endif
 
 LOCAL_SHARED_LIBRARIES += \

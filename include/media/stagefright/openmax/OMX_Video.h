@@ -1061,7 +1061,7 @@ typedef struct OMX_VIDEO_CONFIG_AVCINTRAPERIOD {
  *  nNaluBytes : Specifies the NAL unit size
  */
 typedef struct OMX_VIDEO_CONFIG_NALSIZE {
-    OMX_U32 nSize; 
+    OMX_U32 nSize;
     OMX_VERSIONTYPE nVersion;
     OMX_U32 nPortIndex;
     OMX_U32 nNaluBytes;
@@ -1153,6 +1153,23 @@ typedef struct OMX_TI_PARAM_TIMESTAMP_IN_DECODE_ORDER {
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+/* ========================================================================== */
+/*!
+ @brief OMX_VIDEO_CONFIG_SLICECODINGTYPE : to configure the Slice Settings
+ @param  eSliceMode	to specify the Slice mode
+ 							@sa OMX_VIDEO_AVCSLICEMODETYPE
+ @param  nSlicesize to specify the sliceSize
+*/
+/* ==========================================================================*/
+
+typedef struct OMX_VIDEO_CONFIG_SLICECODINGTYPE{
+	OMX_U32	 nSize;
+	OMX_VERSIONTYPE nVersion;
+	OMX_U32	 nPortIndex;
+	OMX_VIDEO_AVCSLICEMODETYPE eSliceMode;
+	OMX_U32	 nSlicesize;
+}OMX_VIDEO_CONFIG_SLICECODINGTYPE;
 
 #endif
 /* File EOF */

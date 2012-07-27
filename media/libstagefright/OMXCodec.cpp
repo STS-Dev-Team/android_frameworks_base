@@ -60,7 +60,7 @@
 #endif
 #include "include/avc_utils.h"
 #ifdef OMAP_ENHANCEMENT
-#include <OMX_TI_Video.h>
+//#include <OMX_TI_Video.h>
 #include <OMX_TI_Index.h>
 #include <ctype.h>
 #endif
@@ -6289,7 +6289,7 @@ void OMXCodec::initOutputFormat(const sp<MetaData> &inputFormat) {
                 uint32_t layout = OMX_InterlaceFrameProgressive;
                 if (OK == mOMX->getConfig(
                         mNode,
-                        OMX_TI_IndexConfigStreamInterlaceFormats,
+                        static_cast<OMX_INDEXTYPE>(OMX_TI_IndexConfigStreamInterlaceFormats),
                         &buff_layout, sizeof(buff_layout))) {
                     layout = buff_layout.bInterlaceFormat ?
                              buff_layout.nInterlaceFormats & OMX_InterlaceFmtMask :
