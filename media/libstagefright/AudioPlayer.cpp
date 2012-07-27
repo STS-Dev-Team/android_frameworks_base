@@ -155,9 +155,7 @@ namespace omap_enhancement
         /* See docs on set_state() for state progression */
         typedef enum {
             STOPPED = 0,
-            FIRST_ROLLING,
             ROLLING,
-            FIRST_PAUSED,
             PAUSED,
         } state_t;
 
@@ -167,14 +165,9 @@ namespace omap_enhancement
             SEEK,
             PAUSE,
             POST_BUFFER,
-            COUNTDOWN_0,
             ERR_UNDERRUN,
             ERR_OVERRUN,
         } input_t;
-
-        enum {
-            MAX_OVERRUNS = 2,
-        };
 
     private:
         /* All time variables are in microseconds (usecs). */
@@ -186,8 +179,6 @@ namespace omap_enhancement
         int64_t m_read;          /* read pointer of media at t0 */
         int64_t m_queued;        /* amount of media queued for next callback */
         int64_t m_latency;       /* typ. 1x or 2x the size of the FIFO */
-        int64_t m_countdown;     /* used to determine length of FIRST_ROLLING */
-        int64_t m_overruns;      /* 1 + number of overruns that have occured */
 
         /* These two are for error checking
          */
@@ -221,18 +212,9 @@ namespace omap_enhancement
      *     STOPPED - Audio is not moving, the clock is frozen, and the
      *              fifos are flushed.  This is also the initial state.
      *
-     *     FIRST_ROLLING - Audio has begun to move, but we do not have
-     *              enough data to be a reliable clock source.  During
-     *              this phase, data is being collected but the time
-     *              clock is essentially the system monotonic clock.
-     *
      *     ROLLING - The buffer pipelines have all reached steady-state
      *              and we are using a feedback loop to control how
      *              time progresses.
-     *
-     *     FIRST_PAUSED - Audio is not moving, the clock is frozen, and
-     *              the fifos are maintaining state.  When we leave this
-     *              state, we will usually go to FIRST_ROLLING.
      *
      *     PAUSED - Audio is not moving, the clock is frozen, and
      *              the fifos are maintaining state.  When we
@@ -243,89 +225,64 @@ namespace omap_enhancement
      *
      * +------------------------------------------------------+
      * |                                                      |
-     * |              STOPPED (Initial state)                 |<--------+
-     * |                                                      |<------+ |
-     * +------------------------------------------------------+       | |
-     *   A    A                                |            A         | |
-     *   |    |                          post_buffer()      |         | |
-     *   |   stop()                            |            |         | |
-     *   |    or                               |            |         | |
-     *   |   seek()                            |           stop()     | |
-     *   |    |                                V            |         | |
-     *   |  +--------------+                  +---------------+       | |
-     *   |  +              +<----pause()------|               |       | |
-     *   |  | FIRST_PAUSED |                  | FIRST_ROLLING |       | |
-     *   |  +              +---post_buffer()->| (see below)   |       | |
-     *   |  +--------------+                  +---------------+       | |
-     *   |                                      |           |         | |
-     *  stop()                               countdown err_underrun() | |
-     *   or                                  hits 0         |         | |
-     *  seek()                                  |           +---------+ |
-     *   |                                      V                       |
-     * +--------+                      +---------+                      |
-     * |        |<----pause()----------|         |                      |
-     * | PAUSED |                      | ROLLING |--err_underrun()------|
+     * |              STOPPED (Initial state)                 |<------+
+     * |                                                      |       |
+     * +------------------------------------------------------+       |
+     *   A                                  |                         |
+     *   |                             post_buffer()                  |
+     *   |                                  |                         |
+     *  stop()                              |                         |
+     *   or                                 |                         |
+     *  seek()                              |                         |
+     *   |                                  V                         |
+     * +--------+                      +---------+                    |
+     * |        |<----pause()----------|         |                    |
+     * | PAUSED |                      | ROLLING |--err_underrun()----|
      * |        |---post_buffer()----->|         |   or stop()
      * +--------+                      +---------+
      *                                  | A
-     *      +-----------err_overrun()---+ |   +---------------------+
-     *      |                             |   |    FIRST_ROLLING    |
-     *     / \                            |   |    err_overrun()    |
-     *    /   \                           |   |     handling        |
-     *  Nth time?--yes---(advance time)---+   +---------------------+
-     *    \   /                                 |         A       A
-     *     \ /                          err_overrun()     |       |
-     *      *                                   |         |       |
-     *      |                                  / \     do nothing |
-     *      no                                /   \       |       |
-     *      |                                Nth time?---yes      |
-     *   (tweak params)                       \   /               |
-     *      |                                  \ /                |
-     *      V                                   *                 |
-     *  (to FIRST_ROLLING)                      |                 |
-     *                                          no                |
-     *                                          |                 |
-     *                                          +-(tweak params)--+
+     *      +-----------err_overrun()---+ |
+     *      |                             |
+     *     / \                            |
+     *    /   \                           |
+     *  Nth time?--yes---(advance time)---+
+     *    \   /
+     *     \ /
+     *      *
+     *      |
+     *      no
+     *      |
+     *   (tweak params)
+     *      |
+     *      V
+     *  (to ROLLING)
      *
      */
     void TimeInterpolator::set_state(state_t s, input_t i)
     {
         static const char* state_strings[] = {
-            "STOPPED", "FIRST_ROLLING", "ROLLING", "FIRST_PAUSED", "PAUSED",
+            "STOPPED", "ROLLING", "PAUSED",
         };
         static const char* input_strings[] = {
-            "STOP", "SEEK", "PAUSE", "POST_BUFFER", "COUNTDOWN_0", "ERR_UNDERRUN",
+            "STOP", "SEEK", "PAUSE", "POST_BUFFER", "ERR_UNDERRUN",
             "ERR_OVERRUN",
         };
 
-        LOGI("TimeInterpolator state %s -> %s (input: %s)", state_strings[m_state],
+        LOGV("TimeInterpolator state %s -> %s (input: %s)", state_strings[m_state],
              state_strings[s], input_strings[i]);
 
         if (m_state == s) {
-            LOGE("TimeInterpolator calling set_state() should actually change a state.");
+            LOGV("TimeInterpolator calling set_state() should actually change a state.");
+            return;
         }
 
         /* this block is just for error-checking */
         switch (m_state) {
         case STOPPED:
-            if (s == FIRST_ROLLING && i != POST_BUFFER) {
+            if (s == ROLLING && i != POST_BUFFER) {
                 LOGE("TimeInterpolator state should only change for POST_BUFFER");
             }
-            if (s != FIRST_ROLLING) {
-                LOGE("TimeInterpolator this state should not be reachable.");
-            }
-            break;
-        case FIRST_ROLLING:
-            if (s == STOPPED && i != STOP && i != ERR_UNDERRUN) {
-                LOGE("TimeInterpolator state should only change for STOP or ERR_UNDERRUN");
-            }
-            if (s == FIRST_PAUSED && i != PAUSE) {
-                LOGE("TimeInterpolator state should only change for PAUSE");
-            }
-            if (s == ROLLING && i != COUNTDOWN_0) {
-                LOGE("TimeInterpolator state should only change for COUNTDOWN_0");
-            }
-            if (s != STOPPED && s != FIRST_PAUSED && s != ROLLING) {
+            if (s != ROLLING) {
                 LOGE("TimeInterpolator this state should not be reachable.");
             }
             break;
@@ -333,25 +290,11 @@ namespace omap_enhancement
             if (s == PAUSED && i != PAUSE) {
                 LOGE("TimeInterpolator state should only change for PAUSE");
             }
-            if (s == FIRST_ROLLING && i != ERR_OVERRUN) {
-                LOGE("TimeInterpolator state should only change for ERR_OVERRUN");
-            }
             if (s == STOPPED && i != STOP && i != ERR_UNDERRUN) {
                 LOGE("TimeInterpolator state should only change for STOP or ERR_UNDERRUN");
             }
-            if (s != PAUSED && s != FIRST_ROLLING && s != STOPPED) {
+            if (s != PAUSED && s != STOPPED) {
                 LOGE("TimeInterpolator this state should not be reachable.");
-            }
-            break;
-        case FIRST_PAUSED:
-            if (s == FIRST_ROLLING && i != POST_BUFFER) {
-                LOGE("TimeInterpolator state should only change for POST_BUFFER");
-            }
-            if (s == STOPPED && i != STOP && i != SEEK) {
-                LOGE("TimeInterpolator state should only change for STOP or SEEK");
-            }
-            if (s != STOPPED && s != FIRST_ROLLING) {
-                LOGE("TimeInterpolator this state should not be reachable");
             }
             break;
         case PAUSED:
@@ -383,18 +326,9 @@ namespace omap_enhancement
     void TimeInterpolator::seek(int64_t media_time)
     {
         pthread_mutex_lock(&m_mutex);
-        LOGI("TimeInterpolator::seek(media_time=%lld)", media_time);
+        LOGV("TimeInterpolator::seek(media_time=%lld)", media_time);
 
-        /* Special case:  there's a race condition in AudioPlayer
-         * where we need to ignore a seek on the first fillBuffer()
-         */
-        if (m_state == FIRST_ROLLING &&
-            m_pos0 == m_read &&
-            m_queued) {
-            goto end;
-        }
-
-        if (m_state == STOPPED || m_state == PAUSED || m_state == FIRST_PAUSED) {
+        if (m_state == STOPPED || m_state == PAUSED) {
             m_pos0 = media_time;
             m_read = media_time;
             m_queued = 0;
@@ -402,14 +336,11 @@ namespace omap_enhancement
             m_Tf = 0;
             m_last = media_time;
             m_now_last = 0;
-            m_overruns = 1;
         } else {
+            LOGE_IF(m_state != ROLLING, "TimeInterpolator logic error: "
+                    "state is not rolling in seek()");
             m_read = media_time;
-            if (m_state == ROLLING) {
-                m_pos0 = m_read - m_latency;
-            } else {
-                m_pos0 = m_read - m_countdown + m_latency;
-            }
+            m_pos0 = m_read - m_latency;
             m_queued = 0;
             m_t0 = get_system_usecs();
             m_Tf = 1.0;
@@ -425,7 +356,7 @@ namespace omap_enhancement
         int64_t seek_to = -1;
 
         pthread_mutex_lock(&m_mutex);
-        LOGI("%s()", __func__);
+        LOGV("%s()", __func__);
         if (flushing_fifo) {
             set_state(STOPPED, STOP);
             seek_to = m_read + m_queued;
@@ -435,21 +366,17 @@ namespace omap_enhancement
             m_pos0 = m_last;
             m_t0 = get_system_usecs();
             m_queued = 0;
-        } else if (m_state == FIRST_ROLLING) {
-            set_state(FIRST_PAUSED, PAUSE);
-            m_read += m_queued;
-            m_pos0 = m_last;
         }
         pthread_mutex_unlock(&m_mutex);
         if (seek_to >= 0) seek(seek_to);
     }
 
-    /* Should only be called when in PAUSED or FIRST_PAUSED state */
+    /* Should only be called when in PAUSED state */
     void TimeInterpolator::resume()
     {
         pthread_mutex_lock(&m_mutex);
-        if (m_state != PAUSED && m_state != FIRST_PAUSED) {
-            LOGE("Error: calling %s() when not in PAUSED or FIRST_PAUSED state",
+        if (m_state != PAUSED) {
+            LOGE("Error: calling %s() when not in PAUSED state",
                  __func__);
         }
         m_t0 = get_system_usecs();
@@ -476,24 +403,22 @@ namespace omap_enhancement
 
         now = get_system_usecs();
 
-        if (m_state == PAUSED || m_state == FIRST_PAUSED) {
+        if (m_state == PAUSED) {
             t_media = m_pos0;
             goto end;
-        }
-
-        if (m_state == FIRST_ROLLING && m_Tf != 1.0) {
-            LOGE("TimeInterpolator state is FIRST_ROLLING and m_Tf is not 1.0");
         }
 
         dt = m_Tf * double(now - m_t0);
         if (dt < 0.0) dt = 0.0;
         t_media = m_pos0 + int64_t(dt);
+        if (t_media < 0) {
+            t_media = 0;
+        }
         if (t_media < m_last) {
-            LOGE("time tried to rewind: %lld Tf=%g t0=%lld pos0=%lld dt=%g "
+            LOGW("time is rewinding: %lld Tf=%g t0=%lld pos0=%lld dt=%g "
                  "now=%lld last=%lld now_last=%lld",
                  t_media - m_last, m_Tf, m_t0, m_pos0, dt,
                  now, m_last, m_now_last);
-            t_media = m_last;
         }
         if (t_media >= read_pointer()) {
             if (m_state == ROLLING) {
@@ -501,7 +426,6 @@ namespace omap_enhancement
                 LOGE("UNDERRUN in %s", __func__);
                 err_underrun();
             }
-            /* Can not reliably detect underrun during FIRST_ROLLING */
         }
 
         m_last = t_media;
@@ -511,9 +435,9 @@ namespace omap_enhancement
         /* t_media += m_latency; */
         pthread_mutex_unlock(&m_mutex);
         LOGV("%s == %lld (t0=%lld, pos0=%lld, Tf=%g, read=%lld, queued=%lld "
-             "latency=%lld overruns=%lld now=%lld, ",
+             "latency=%lld now=%lld, ",
              __func__, t_media, m_t0, m_pos0, m_Tf, m_read, m_queued,
-             m_latency, m_overruns, now);
+             m_latency, now);
         return t_media;
     }
 
@@ -616,53 +540,38 @@ namespace omap_enhancement
         int64_t pos1;                   /* the next value of pos0 */
         int64_t pos1_desired;           /* the ideal next value of pos0 */
         bool aggregate_buffers = false; /* see below */
-        bool countdown_ended = false;   /* countown for FIRST_ROLLING */
+        bool set_Tf_to_unity = false;   /* In some state changes, m_Tf needs to be set to 1.0 */
         int64_t posted_this_time;       /* value of m_queued saved for debugging */
 
         pthread_mutex_lock(&m_mutex);
 
         /* Special logic for startup sequence/states */
         if (m_state != ROLLING) {
-            if (m_state == FIRST_PAUSED) {
-                set_state(FIRST_ROLLING, POST_BUFFER);
-            }
-
             if (m_state == PAUSED) {
                 set_state(ROLLING, POST_BUFFER);
-                countdown_ended = true;
-                m_countdown = 0;
+                set_Tf_to_unity = true;
             }
 
             if (m_state == STOPPED) {
+                /* Setting the initial_offset to half the latency
+                 * was found (by trial-and-error) to stabilize the
+                 * TimeInterpolator within about 2-4 video frames.
+                 */
+                int64_t initial_offset = m_latency / 2;
                 if (m_queued != 0) {
-                    LOGE("TimeInterpolator state is PAUSED, but m_queued is "
+                    LOGW("TimeInterpolator state is PAUSED, but m_queued is "
                          "not 0 (actually %lld)", frame_usecs);
                 }
                 m_t0 = get_system_usecs();
-                set_state(FIRST_ROLLING, POST_BUFFER);
-                m_queued = frame_usecs;
-                m_countdown = m_latency * m_overruns;
-                m_countdown -= frame_usecs;
-                m_Tf = 1.0;
-                if (m_countdown < 0) m_countdown = 0;
-                goto end;
-            }
-
-            if (m_state == FIRST_ROLLING) {
-                if (m_countdown) {
-                    LOGI("TimeInterpolator FIRST_ROLLING frame_usecs=%lld",
-                         frame_usecs);
-                    m_countdown -= frame_usecs;
-                    m_Tf = 1.0;
-                    if (m_countdown < 0) {
-                        m_countdown = 0;
-                        countdown_ended = true;
-                    }
-                    aggregate_buffers = true;
-                } else {
-                    countdown_ended = true;
-                    set_state(ROLLING, COUNTDOWN_0);
+                set_state(ROLLING, POST_BUFFER);
+                m_read += frame_usecs;
+                if (initial_offset < 40000) {
+                    initial_offset = 40000;
                 }
+                m_pos0 = m_read - initial_offset;
+                m_queued = 0;
+                m_Tf = 1.0;
+                goto end;
             }
         }
 
@@ -680,19 +589,18 @@ namespace omap_enhancement
 
             m_read += m_queued;
             pos1 = m_pos0 + m_Tf * dt;
-            pos1_desired = m_read - m_latency * m_overruns;
+            pos1_desired = m_read - m_latency;
             e = pos1 - pos1_desired;
 
-            if (pos1 < m_last) {
-                LOGI("this cycle will cause a rewind pos1=%lld m_last=%lld pos-last=%lld",
+            if ((pos1 < m_last) && (m_last > 0)) {
+                /* This is ignored at the start of playback */
+                LOGW("this cycle will cause a rewind pos1=%lld m_last=%lld pos-last=%lld",
                      pos1, m_last, (pos1-m_last));
             }
-            if (countdown_ended) {
+            if (set_Tf_to_unity) {
                 e = pos1 - (m_read - m_latency);
-                LOGI("@countdown end e=%g (resetting to 0)", e);
+                LOGV("%s set_Tf_to_unity e=%g (resetting to 0)", __func__, e);
                 e = 0;
-            }
-            if (countdown_ended) {
                 m_Tf = 1.0;
             } else {
                 m_Tf = 1.0 - (e / m_latency);
@@ -750,23 +658,9 @@ namespace omap_enhancement
         LOGE("TimeInterpolator OVERRUN detected");
         int64_t now = get_system_usecs();
         if (m_state == ROLLING) {
-            if (m_overruns >= MAX_OVERRUNS) {
-                /* abruptly advance time */
-                m_pos0 = m_read - m_overruns * m_latency;
-                m_t0 = get_system_usecs();
-            } else {
-                ++m_overruns;
-                int64_t t1 = m_pos0 + m_Tf * (now - m_t0);
-                int64_t dt = m_read - t1;
-                m_countdown = m_overruns * m_latency - dt;
-                m_t0 = t1;
-                set_state(FIRST_ROLLING, ERR_OVERRUN);
-            }
-        } else if (m_state == FIRST_ROLLING) {
-            if (m_overruns < MAX_OVERRUNS) {
-                ++m_overruns;
-                m_countdown = m_overruns * m_latency - m_countdown;
-            }
+            /* abruptly advance time */
+            m_pos0 = m_read - m_latency;
+            m_t0 = get_system_usecs();
         }
     }
 
@@ -1155,9 +1049,6 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
                 mInputBuffer = mFirstBuffer;
                 mFirstBuffer = NULL;
                 err = mFirstBufferResult;
-#if defined(OMAP_ENHANCEMENT) && defined (OMAP_TIME_INTERPOLATOR)
-                mRealTimeInterpolator->seek(0);
-#endif
 
                 mIsFirstBuffer = false;
             } else {
@@ -1251,12 +1142,10 @@ size_t AudioPlayer::fillBuffer(void *data, size_t size) {
         size_remaining -= copy;
     }
 
-#if !(defined(OMAP_ENHANCEMENT) && defined(OMAP_TIME_INTERPOLATOR))
     {
         Mutex::Autolock autoLock(mLock);
         mNumFramesPlayed += size_done / mFrameSize;
     }
-#endif
 
     if (postEOS) {
         mObserver->postAudioEOS(postEOSDelayUs);

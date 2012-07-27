@@ -30,6 +30,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
@@ -59,25 +60,103 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.Runtime;
 import java.util.ArrayList;
 import java.util.Collections;
 
 public class Smdk4210RIL extends RIL implements CommandsInterface {
 
-    //SAMSUNG SMDK4210 STATES
+    //SAMSUNG STATES
+    static final int RIL_REQUEST_GET_CELL_BROADCAST_CONFIG = 10002;
+
+    static final int RIL_REQUEST_SEND_ENCODED_USSD = 10005;
+    static final int RIL_REQUEST_SET_PDA_MEMORY_STATUS = 10006;
+    static final int RIL_REQUEST_GET_PHONEBOOK_STORAGE_INFO = 10007;
+    static final int RIL_REQUEST_GET_PHONEBOOK_ENTRY = 10008;
+    static final int RIL_REQUEST_ACCESS_PHONEBOOK_ENTRY = 10009;
+    static final int RIL_REQUEST_DIAL_VIDEO_CALL = 10010;
+    static final int RIL_REQUEST_CALL_DEFLECTION = 10011;
+    static final int RIL_REQUEST_READ_SMS_FROM_SIM = 10012;
+    static final int RIL_REQUEST_USIM_PB_CAPA = 10013;
+    static final int RIL_REQUEST_LOCK_INFO = 10014;
+
     static final int RIL_REQUEST_DIAL_EMERGENCY = 10016;
-    static final int RIL_UNSOL_STK_SEND_SMS_RESULT = 11002;
+    static final int RIL_REQUEST_GET_STOREAD_MSG_COUNT = 10017;
+    static final int RIL_REQUEST_STK_SIM_INIT_EVENT = 10018;
+    static final int RIL_REQUEST_GET_LINE_ID = 10019;
+    static final int RIL_REQUEST_SET_LINE_ID = 10020;
+    static final int RIL_REQUEST_GET_SERIAL_NUMBER = 10021;
+    static final int RIL_REQUEST_GET_MANUFACTURE_DATE_NUMBER = 10022;
+    static final int RIL_REQUEST_GET_BARCODE_NUMBER = 10023;
+    static final int RIL_REQUEST_UICC_GBA_AUTHENTICATE_BOOTSTRAP = 10024;
+    static final int RIL_REQUEST_UICC_GBA_AUTHENTICATE_NAF = 10025;
+    static final int RIL_REQUEST_SIM_TRANSMIT_BASIC = 10026;
+    static final int RIL_REQUEST_SIM_OPEN_CHANNEL = 10027;
+    static final int RIL_REQUEST_SIM_CLOSE_CHANNEL = 10028;
+    static final int RIL_REQUEST_SIM_TRANSMIT_CHANNEL = 10029;
+    static final int RIL_REQUEST_SIM_AUTH = 10030;
+    static final int RIL_REQUEST_PS_ATTACH = 10031;
+    static final int RIL_REQUEST_PS_DETACH = 10032;
+    static final int RIL_REQUEST_ACTIVATE_DATA_CALL = 10033;
+    static final int RIL_REQUEST_CHANGE_SIM_PERSO = 10034;
+    static final int RIL_REQUEST_ENTER_SIM_PERSO = 10035;
+    static final int RIL_REQUEST_GET_TIME_INFO = 10036;
+    static final int RIL_REQUEST_OMADM_SETUP_SESSION = 10037;
+    static final int RIL_REQUEST_OMADM_SERVER_START_SESSION = 10038;
+    static final int RIL_REQUEST_OMADM_CLIENT_START_SESSION = 10039;
+    static final int RIL_REQUEST_OMADM_SEND_DATA = 10040;
+    static final int RIL_REQUEST_CDMA_GET_DATAPROFILE = 10041;
+    static final int RIL_REQUEST_CDMA_SET_DATAPROFILE = 10042;
+    static final int RIL_REQUEST_CDMA_GET_SYSTEMPROPERTIES = 10043;
+    static final int RIL_REQUEST_CDMA_SET_SYSTEMPROPERTIES = 10044;
+    static final int RIL_REQUEST_SEND_SMS_COUNT = 10045;
+    static final int RIL_REQUEST_SEND_SMS_MSG = 10046;
+    static final int RIL_REQUEST_SEND_SMS_MSG_READ_STATUS = 10047;
+    static final int RIL_REQUEST_MODEM_HANGUP = 10048;
+    static final int RIL_REQUEST_SET_SIM_POWER = 10049;
+    static final int RIL_REQUEST_SET_PREFERRED_NETWORK_LIST = 10050;
+    static final int RIL_REQUEST_GET_PREFERRED_NETWORK_LIST = 10051;
+    static final int RIL_REQUEST_HANGUP_VT = 10052;
+
+    static final int RIL_UNSOL_RELEASE_COMPLETE_MESSAGE = 11001;
+    //static final int RIL_UNSOL_STK_SEND_SMS_RESULT = 11002;
+    static final int RIL_UNSOL_STK_CALL_CONTROL_RESULT = 11003;
+    static final int RIL_UNSOL_DUN_CALL_STATUS = 11004;
+
     static final int RIL_UNSOL_O2_HOME_ZONE_INFO = 11007;
     static final int RIL_UNSOL_DEVICE_READY_NOTI = 11008;
-    static final int RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_1 = 11010;
-    static final int RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_2 = 11011;
-    static final int RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_3 = 11012;
+    static final int RIL_UNSOL_GPS_NOTI = 11009;
+    static final int RIL_UNSOL_AM = 11010;
+    static final int RIL_UNSOL_DUN_PIN_CONTROL_SIGNAL = 11011;
+    static final int RIL_UNSOL_DATA_SUSPEND_RESUME = 11012;
+    static final int RIL_UNSOL_SAP = 11013;
+
+    static final int RIL_UNSOL_SIM_SMS_STORAGE_AVAILALE = 11015;
     static final int RIL_UNSOL_HSDPA_STATE_CHANGED = 11016;
+    static final int RIL_UNSOL_WB_AMR_STATE = 11017;
+    static final int RIL_UNSOL_TWO_MIC_STATE = 11018;
+    static final int RIL_UNSOL_DHA_STATE = 11019;
+    static final int RIL_UNSOL_UART = 11020;
+    static final int RIL_UNSOL_RESPONSE_HANDOVER = 11021;
+    static final int RIL_UNSOL_IPV6_ADDR = 11022;
+    static final int RIL_UNSOL_NWK_INIT_DISC_REQUEST = 11023;
+    static final int RIL_UNSOL_RTS_INDICATION = 11024;
+    static final int RIL_UNSOL_OMADM_SEND_DATA = 11025;
+    static final int RIL_UNSOL_DUN = 11026;
+    static final int RIL_UNSOL_SYSTEM_REBOOT = 11027;
+    static final int RIL_UNSOL_VOICE_PRIVACY_CHANGED = 11028;
+    static final int RIL_UNSOL_UTS_GETSMSCOUNT = 11029;
+    static final int RIL_UNSOL_UTS_GETSMSMSG = 11030;
+    static final int RIL_UNSOL_UTS_GET_UNREAD_SMS_STATUS = 11031;
+    static final int RIL_UNSOL_MIP_CONNECT_STATUS = 11032;
+
     protected HandlerThread mSmdk4210Thread;
     protected ConnectivityHandler mSmdk4210Handler;
+    private AudioManager audioManager;
 
     public Smdk4210RIL(Context context, int networkMode, int cdmaSubscription) {
         super(context, networkMode, cdmaSubscription);
+        audioManager = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
     }
 
     @Override
@@ -422,9 +501,12 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
             case RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS: ret = responseString(p); break;
             case RIL_UNSOL_RIL_CONNECTED: ret = responseInts(p); break;
             // SAMSUNG STATES
-            case RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_1: ret = responseVoid(p); break;
-            case RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_2: ret = responseVoid(p); break;
-            case RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_3: ret = responseVoid(p); break;
+            case RIL_UNSOL_AM: ret = responseString(p); break;
+            case RIL_UNSOL_DUN_PIN_CONTROL_SIGNAL: ret = responseVoid(p); break;
+            case RIL_UNSOL_DATA_SUSPEND_RESUME: ret = responseInts(p); break;
+            case RIL_UNSOL_STK_CALL_CONTROL_RESULT: ret = responseVoid(p); break;
+            case RIL_UNSOL_TWO_MIC_STATE: ret = responseInts(p); break;
+            case RIL_UNSOL_WB_AMR_STATE: ret = responseInts(p); break;
 
             default:
                 // Rewind the Parcel
@@ -454,11 +536,66 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
                 notifyRegistrantsRilConnectionChanged(((int[])ret)[0]);
                 break;
             // SAMSUNG STATES
-            case RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_1:
-            case RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_2:
-            case RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_3:
+            case RIL_UNSOL_AM:
+                if (RILJ_LOGD) samsungUnsljLogRet(response, ret);
+                String amString = (String) ret;
+                Log.d(LOG_TAG, "Executing AM: " + amString);
+
+                try {
+                    Runtime.getRuntime().exec("am " + amString);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.e(LOG_TAG, "am " + amString + " could not be executed.");
+                }
+                break;
+            case RIL_UNSOL_DUN_PIN_CONTROL_SIGNAL:
+                if (RILJ_LOGD) samsungUnsljLogRet(response, ret);
+                break;
+            case RIL_UNSOL_DATA_SUSPEND_RESUME:
+                if (RILJ_LOGD) samsungUnsljLogRet(response, ret);
+                break;
+            case RIL_UNSOL_STK_CALL_CONTROL_RESULT:
+                if (RILJ_LOGD) samsungUnsljLogRet(response, ret);
+                break;
+            case RIL_UNSOL_TWO_MIC_STATE:
+                if (RILJ_LOGD) samsungUnsljLogRet(response, ret);
+                break;
+            case RIL_UNSOL_WB_AMR_STATE:
+                if (RILJ_LOGD) samsungUnsljLogRet(response, ret);
+                setWbAmr(((int[])ret)[0]);
                 break;
         }
+    }
+
+    static String
+    samsungResponseToString(int request)
+    {
+        switch(request) {
+            // SAMSUNG STATES
+            case RIL_UNSOL_AM: return "RIL_UNSOL_AM";
+            case RIL_UNSOL_DUN_PIN_CONTROL_SIGNAL: return "RIL_UNSOL_DUN_PIN_CONTROL_SIGNAL";
+            case RIL_UNSOL_DATA_SUSPEND_RESUME: return "RIL_UNSOL_DATA_SUSPEND_RESUME";
+            case RIL_UNSOL_STK_CALL_CONTROL_RESULT: return "RIL_UNSOL_STK_CALL_CONTROL_RESULT";
+            case RIL_UNSOL_TWO_MIC_STATE: return "RIL_UNSOL_TWO_MIC_STATE";
+            case RIL_UNSOL_WB_AMR_STATE: return "RIL_UNSOL_WB_AMR_STATE";
+            default: return "<unknown response: "+request+">";
+        }
+    }
+
+    protected void samsungUnsljLog(int response) {
+        riljLog("[UNSL]< " + samsungResponseToString(response));
+    }
+
+    protected void samsungUnsljLogMore(int response, String more) {
+        riljLog("[UNSL]< " + samsungResponseToString(response) + " " + more);
+    }
+
+    protected void samsungUnsljLogRet(int response, Object ret) {
+        riljLog("[UNSL]< " + samsungResponseToString(response) + " " + retToString(response, ret));
+    }
+
+    protected void samsungUnsljLogvRet(int response, Object ret) {
+        riljLogv("[UNSL]< " + samsungResponseToString(response) + " " + retToString(response, ret));
     }
 
     /**
@@ -471,6 +608,21 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
         if (mRilConnectedRegistrants != null) {
             mRilConnectedRegistrants.notifyRegistrants(
                                 new AsyncResult (null, new Integer(rilVer), null));
+        }
+    }
+
+    /**
+     * Set audio parameter "wb_amr" for HD-Voice (Wideband AMR).
+     *
+     * @param state: 0 = unsupported, 1 = supported.
+     */
+    private void setWbAmr(int state) {
+        if (state == 1) {
+            Log.d(LOG_TAG, "setWbAmr(): setting audio parameter - wb_amr=on");
+            audioManager.setParameters("wb_amr=on");
+        } else {
+            Log.d(LOG_TAG, "setWbAmr(): setting audio parameter - wb_amr=off");
+            audioManager.setParameters("wb_amr=off");
         }
     }
 
@@ -620,20 +772,29 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
         int numInts = 12;
         int response[];
 
-        /* TODO: Add SignalStrength class to match RIL_SignalStrength */
+        // Get raw data
         response = new int[numInts];
         for (int i = 0 ; i < numInts ; i++) {
             response[i] = p.readInt();
         }
 
-        // SamsungRIL is a v3 RIL, fill the rest with -1
-        for (int i = 7; i < numInts; i++) {
-            response[i] = -1;
+        Log.d(LOG_TAG, "responseSignalStength BEFORE: gsmDbm=" + response[0]);
+
+        //Samsung sends the count of bars that should be displayed instead of
+        //a real signal strength
+        int num_bars = (response[0] & 0xff00) >> 8;
+
+        // Translate number of bars into something SignalStrength.java can understand
+        switch (num_bars) {
+            case 0  : response[0] = 1;     break; // map to 0 bars
+            case 1  : response[0] = 3;     break; // map to 1 bar
+            case 2  : response[0] = 5;     break; // map to 2 bars
+            case 3  : response[0] = 8;     break; // map to 3 bars
+            case 4  : response[0] = 12;    break; // map to 4 bars
+            case 5  : response[0] = 15;    break; // map to 4 bars but give an extra 10 dBm
+            default : response[0] &= 0xff; break; // no idea; just pass value through
         }
 
-        /* Matching Samsung signal strength to asu.
-           Method taken from Samsungs cdma/gsmSignalStateTracker */
-        response[0] = ((response[0] & 0xFF00) >> 8) * 3; //gsmDbm
         response[1] = -1; //gsmEcio
         response[2] = (response[2] < 0)?-120:-response[2]; //cdmaDbm
         response[3] = (response[3] < 0)?-160:-response[3]; //cdmaEcio
@@ -642,6 +803,8 @@ public class Smdk4210RIL extends RIL implements CommandsInterface {
         if (response[6] < 0 || response[6] > 8) {
             response[6] = -1;
         }
+
+        Log.d(LOG_TAG, "responseSignalStength AFTER: gsmDbm=" + response[0]);
 
         return response;
     }

@@ -32,6 +32,8 @@ import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import android.os.SystemProperties;
+
 
 /**
  * Used to record audio and video. The recording control is based on a
@@ -228,9 +230,11 @@ public class MediaRecorder
         /** @hide H.264/AAC data encapsulated in MPEG2/TS */
         public static final int OUTPUT_FORMAT_MPEG2TS = 8;
 
-        /** QCP file format */
+        /** QCP file format
+         * @hide */
         public static final int QCP = 9;
-        /** 3GPP2 media file format*/
+        /** 3GPP2 media file format
+         * @hide */
         public static final int THREE_GPP2 = 10;
     };
 
@@ -250,13 +254,17 @@ public class MediaRecorder
         public static final int AMR_WB = 2;
         /** AAC audio codec */
         public static final int AAC = 3;
-        /** enhanced AAC audio codec */
+        /** enhanced AAC audio codec
+         * @hide */
         public static final int AAC_PLUS = 4;
-        /** enhanced AAC plus audio codec */
+        /** enhanced AAC plus audio codec
+         * @hide */
         public static final int EAAC_PLUS = 5;
-        /** EVRC audio codec */
+        /** EVRC audio codec
+         * @hide */
         public static final int EVRC = 6;
-        /** QCELP audio codec */
+        /** QCELP audio codec
+         * @hide */
         public static final int QCELP =7;
     }
 
@@ -329,6 +337,21 @@ public class MediaRecorder
             setAudioChannels(profile.audioChannels);
             setAudioSamplingRate(profile.audioSampleRate);
             setAudioEncoder(profile.audioCodec);
+        }
+
+        if(SystemProperties.OMAP_ENHANCEMENT) {
+            // Set Encoder Profile  from system properties for H264 Encoder
+            if(profile.videoCodec == MediaRecorder.VideoEncoder.H264){
+                String encProfile;
+                encProfile = SystemProperties.get("video.h264enc.profile");
+                if(encProfile.equals("1") ||encProfile.equals("2") || encProfile.equals("8")) {
+                    Log.v(TAG,"Profile read is : " + encProfile);
+                }else{
+                    Log.v(TAG," Profile is not set or is Invalid .. So setting Baseline as Default");
+                    encProfile = "1";
+                }
+                setParameter(String.format("video-param-encoder-profile="+encProfile));
+            }
         }
     }
 
@@ -669,6 +692,8 @@ public class MediaRecorder
      *
      * @throws IllegalStateException if it is called before
      * prepare().
+     *
+     * @hide
      */
     public native void native_start() throws IllegalStateException;
 
@@ -683,6 +708,8 @@ public class MediaRecorder
      * the output file is not properly constructed when this happens.
      *
      * @throws IllegalStateException if it is called before start()
+     *
+     * @hide
      */
     public native void native_stop() throws IllegalStateException;
 

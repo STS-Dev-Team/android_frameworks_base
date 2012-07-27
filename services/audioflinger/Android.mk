@@ -28,10 +28,20 @@ LOCAL_STATIC_LIBRARIES := \
     libcpustats \
     libmedia_helper
 
+ifeq ($(OMAP_ENHANCEMENT), true)
+    LOCAL_SRC_FILES += AudioResamplerSpeex.cpp.arm
+    LOCAL_C_INCLUDES += external/speex/include
+    LOCAL_SHARED_LIBRARIES += libspeexresampler
+endif
+
 LOCAL_MODULE:= libaudioflinger
 
 ifeq ($(BOARD_USE_MOTO_DOCK_HACK),true)
    LOCAL_CFLAGS += -DMOTO_DOCK_HACK
+endif
+
+ifeq ($(BOARD_HAS_SAMSUNG_VOLUME_BUG),true)
+   LOCAL_CFLAGS += -DHAS_SAMSUNG_VOLUME_BUG
 endif
 
 ifeq ($(ARCH_ARM_HAVE_NEON),true)

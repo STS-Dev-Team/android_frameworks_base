@@ -350,6 +350,7 @@ private:
 #ifdef OMAP_ENHANCEMENT
     const char* mExtractorType;
     sp<MediaExtractor> mExtractor;
+    bool mIsWidevineStreaming;
 
     typedef enum {
         TRACK_EXTRACTOR_NULL,

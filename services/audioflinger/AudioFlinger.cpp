@@ -95,6 +95,11 @@ static const uint32_t kMinThreadSleepTimeUs = 5000;
 // maximum divider applied to the active sleep time in the mixer thread loop
 static const uint32_t kMaxThreadSleepTimeShift = 2;
 
+#ifdef HAS_SAMSUNG_VOLUME_BUG
+float gPrevMusicStreamVolume = 0;
+bool gMusicStreamIsMuted = false;
+bool gMusicStreamNeedsPrevVolume = false;
+#endif
 
 // ----------------------------------------------------------------------------
 
@@ -1844,7 +1849,11 @@ sp<AudioFlinger::PlaybackThread::Track>  AudioFlinger::PlaybackThread::createTra
         }
     } else {
         // Resampler implementation limits input sampling rate to 2 x output sampling rate.
+#ifdef OMAP_ENHANCEMENT
+        if (AudioResampler::checkRate(mSampleRate, sampleRate)) {
+#else
         if (sampleRate > mSampleRate*2) {
+#endif
             LOGE("Sample rate out of range: %d mSampleRate %d", sampleRate, mSampleRate);
             lStatus = BAD_VALUE;
             goto Exit;
@@ -2531,9 +2540,41 @@ uint32_t AudioFlinger::MixerThread::prepareTracks_l(const SortedVector< wp<Track
                     track->setPaused();
                 }
             } else {
+#ifdef HAS_SAMSUNG_VOLUME_BUG
+                if (track->type() == AUDIO_STREAM_MUSIC && !track->isMuted() && !track->isPausing()) {
+                    if(mStreamTypes[AUDIO_STREAM_MUSIC].volume > 0 && !gMusicStreamNeedsPrevVolume) {
+                        gPrevMusicStreamVolume = mStreamTypes[AUDIO_STREAM_MUSIC].volume;
+                    } else {
+                        gMusicStreamIsMuted = true;
+                    }
+                } else if (track->type() == AUDIO_STREAM_MUSIC && (track->isMuted() || track->isPausing())) {
+                    gMusicStreamIsMuted = true;
+                }
 
+                if (track->type() == AUDIO_STREAM_NOTIFICATION && gMusicStreamIsMuted) {
+                    LOGD("Music stream needs volume restore!");
+                    LOGD("gPrevMusicStreamVolume = %f", gPrevMusicStreamVolume);
+                    gMusicStreamNeedsPrevVolume = true;
+                }
+#endif
                 // read original volumes with volume control
                 float typeVolume = mStreamTypes[track->type()].volume;
+
+#ifdef HAS_SAMSUNG_VOLUME_BUG
+                if (track->type() == AUDIO_STREAM_MUSIC && typeVolume > 0 && !track->isMuted() &&
+                        !track->isPausing() && gMusicStreamNeedsPrevVolume) {
+                    LOGI("Restoring last known good volume value on music stream!");
+                    LOGI("gPrevMusicStreamVolume = %f", gPrevMusicStreamVolume);
+                    mStreamTypes[AUDIO_STREAM_MUSIC].volume = gPrevMusicStreamVolume;
+                    typeVolume = gPrevMusicStreamVolume;
+                    gMusicStreamIsMuted = false;
+                    gMusicStreamNeedsPrevVolume = false;
+                } else if (track->type() == AUDIO_STREAM_MUSIC && typeVolume > 0
+                        && !track->isMuted() && !track->isPausing()) {
+                    gMusicStreamIsMuted = false;
+                }
+#endif
+
                 float v = masterVolume * typeVolume;
                 vl = (uint32_t)(v * cblk->volume[0]) << 12;
                 vr = (uint32_t)(v * cblk->volume[1]) << 12;
@@ -2782,10 +2823,19 @@ bool AudioFlinger::MixerThread::checkForNewParameters_l()
                     int name = getTrackName_l();
                     if (name < 0) break;
                     mTracks[i]->mName = name;
+#ifdef OMAP_ENHANCEMENT
+                    if (AudioResampler::checkRate(sampleRate(),
+                            mTracks[i]->mCblk->sampleRate)) {
+                        mTracks[i]->mCblk->sampleRate =
+                            AudioResampler::checkRate(sampleRate(),
+                                mTracks[i]->mCblk->sampleRate);
+                    }
+#else
                     // limit track sample rate to 2 x new output sample rate
                     if (mTracks[i]->mCblk->sampleRate > 2 * sampleRate()) {
                         mTracks[i]->mCblk->sampleRate = 2 * sampleRate();
                     }
+#endif
                 }
                 sendConfigEvent_l(AudioSystem::OUTPUT_CONFIG_CHANGED);
             }
@@ -5128,7 +5178,12 @@ bool AudioFlinger::RecordThread::checkForNewParameters_l()
                 if (status == BAD_VALUE &&
                     reqFormat == mInput->stream->common.get_format(&mInput->stream->common) &&
                     reqFormat == AUDIO_FORMAT_PCM_16_BIT &&
+#ifdef OMAP_ENHANCEMENT
+                    !AudioResampler::checkRate(reqSamplingRate,
+                        (int)mInput->stream->common.get_sample_rate(&mInput->stream->common)) &&
+#else
                     ((int)mInput->stream->common.get_sample_rate(&mInput->stream->common) <= (2 * reqSamplingRate)) &&
+#endif
                     (popcount(mInput->stream->common.get_channels(&mInput->stream->common)) < 3) &&
                     (reqChannelCount < 3)) {
                     status = NO_ERROR;
@@ -5595,7 +5650,11 @@ int AudioFlinger::openInput(uint32_t *pDevices,
     // or stereo to mono conversions on 16 bit PCM inputs.
     if (inStream == NULL && status == BAD_VALUE &&
         reqFormat == format && format == AUDIO_FORMAT_PCM_16_BIT &&
+#ifdef OMAP_ENHANCEMENT
+        !AudioResampler::checkRate(reqSamplingRate, samplingRate) &&
+#else
         (samplingRate <= 2 * reqSamplingRate) &&
+#endif
         (popcount(channels) < 3) && (popcount(reqChannels) < 3)) {
         LOGV("openInput() reopening with proposed sampling rate and channels");
         status = inHwDev->open_input_stream(inHwDev, *pDevices, (int *)&format,
