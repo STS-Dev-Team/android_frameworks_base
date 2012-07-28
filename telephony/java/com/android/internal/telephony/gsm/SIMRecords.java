@@ -1308,6 +1308,13 @@ public class SIMRecords extends IccRecords {
         fetchSimRecords();
     }
 
+    /* FIXME HASH: Added for Motorola Code */
+    public void onSimReadyInCdmaMode() {
+        Log.v("GSM", "SIMRecords: fetch icc id in cdma");
+        mFh.loadEFTransparent(EF_ICCID, obtainMessage(EVENT_GET_ICCID_DONE));
+        recordsToLoad++;
+    }
+
     protected void fetchSimRecords() {
         recordsRequested = true;
 

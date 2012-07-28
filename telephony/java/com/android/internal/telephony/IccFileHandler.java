@@ -239,7 +239,13 @@ public abstract class IccFileHandler extends Handler implements IccConstants {
         Message response = obtainMessage(EVENT_READ_ICON_DONE, fileid, 0,
                 onLoaded);
 
-        mCi.iccIOForApp(COMMAND_READ_BINARY, fileid, "img", highOffset, lowOffset,
+        String s;
+        if(fileid >= 0x4f01 && fileid <= 0x4f05)
+            s = MF_SIM + DF_TELECOM + DF_GRAPHICS;
+        else
+            s = getEFPath(fileid);
+
+        mCi.iccIOForApp(COMMAND_READ_BINARY, fileid, s, highOffset, lowOffset,
                 length, null, null, mAid, response);
     }
 
@@ -525,6 +531,7 @@ public abstract class IccFileHandler extends Handler implements IccConstants {
         case EF_ADN:
         case EF_FDN:
         case EF_MSISDN:
+        case EF_SMSP:
         case EF_SDN:
         case EF_EXT1:
         case EF_EXT2:

@@ -29,6 +29,8 @@ import com.android.internal.telephony.IccIoResult;
 import com.android.internal.telephony.IccUtils;
 import com.android.internal.telephony.PhoneBase;
 import com.android.internal.telephony.PhoneProxy;
+import com.android.internal.telephony.TelephonyProperties;
+import android.os.SystemProperties;
 
 import java.util.ArrayList;
 
@@ -38,11 +40,15 @@ import java.util.ArrayList;
 public final class RuimFileHandler extends IccFileHandler {
     static final String LOG_TAG = "CDMA";
 
+    private boolean mMotoNewArch = false;
+
+
     //***** Instance Variables
 
     //***** Constructor
     public RuimFileHandler(IccCard card, String aid, CommandsInterface ci) {
         super(card, aid, ci);
+        mMotoNewArch = SystemProperties.getBoolean(TelephonyProperties.PROPERTY_MOTO_NEWARCH, false);
     }
 
     protected void finalize() {
@@ -63,17 +69,45 @@ public final class RuimFileHandler extends IccFileHandler {
     }
 
     @Override
+    public void loadEFTransparent(int fileid, Message message) {
+        if (fileid == EF_CSIM_EPRL) {
+            Message response = obtainMessage(EVENT_READ_BINARY_DONE, fileid, 0, message);
+
+            mCi.iccIOForApp(COMMAND_GET_RESPONSE, fileid, "img", 0, 0,
+                READ_RECORD_MODE_ABSOLUTE, null, null, mAid, response);
+        } else {
+            super.loadEFTransparent(fileid, message);
+        }
+    }
+
+    @Override
     public void handleMessage(Message msg) {
 
         super.handleMessage(msg);
     }
 
     protected String getEFPath(int efid) {
-        switch(efid) {
-        case EF_SMS:
-        case EF_CST:
-        case EF_RUIM_SPN:
-            return MF_SIM + DF_CDMA;
+        if (mMotoNewArch) {
+            switch(efid) {
+            case EF_CSIM_IMSIM:
+            case EF_CSIM_CDMAHOME:
+            case EF_CSIM_LI:
+            case EF_RUIM_SPN:
+            case EF_CSIM_MDN:
+            case EF_CSIM_EPRL:
+            case EF_CSIM_SF_EUIMID:
+                Log.d(LOG_TAG, "[CsimFileHandler] getEFPath for " + efid);
+                return MF_SIM + DF_ADFISIM;
+            }
+        }
+
+        else {
+            switch(efid) {
+            case EF_SMS:
+            case EF_CST:
+            case EF_RUIM_SPN:
+                return MF_SIM + DF_CDMA;
+            }
         }
         return getCommonIccEFPath(efid);
     }
