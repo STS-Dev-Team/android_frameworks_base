@@ -73,7 +73,7 @@ public final class RuimFileHandler extends IccFileHandler {
         if (fileid == EF_CSIM_EPRL) {
             Message response = obtainMessage(EVENT_READ_BINARY_DONE, fileid, 0, message);
 
-            mCi.iccIOForApp(COMMAND_GET_RESPONSE, fileid, "img", 0, 0,
+            mCi.iccIOForApp(COMMAND_READ_BINARY, fileid, getEFPath(fileid), 0, 0,
                 READ_RECORD_MODE_ABSOLUTE, null, null, mAid, response);
         } else {
             super.loadEFTransparent(fileid, message);
