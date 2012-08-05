@@ -42,6 +42,7 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.provider.Settings;
+import android.os.SystemProperties;
 import android.text.TextUtils;
 import android.util.Pair;
 import android.util.Slog;
@@ -236,18 +237,31 @@ public class TabletStatusBar extends BaseStatusBar implements
 
     private void addStatusBarWindow() {
         final View sb = makeStatusBarView();
+        final WindowManager.LayoutParams lp;
 
-        final WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.TYPE_NAVIGATION_BAR,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        if (!SystemProperties.OMAP_ENHANCEMENT) {
+            lp = new WindowManager.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.TYPE_NAVIGATION_BAR,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                     | WindowManager.LayoutParams.FLAG_TOUCHABLE_WHEN_WAKING
                     | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
-                // We use a pixel format of RGB565 for the status bar to save memory bandwidth and
-                // to ensure that the layer can be handled by HWComposer.  On some devices the
-                // HWComposer is unable to handle SW-rendered RGBX_8888 layers.
-                PixelFormat.RGB_565);
+                    // We use a pixel format of RGB565 for the status bar to save memory bandwidth and
+                    // to ensure that the layer can be handled by HWComposer.  On some devices the
+                    // HWComposer is unable to handle SW-rendered RGBX_8888 layers.
+                    PixelFormat.RGB_565);
+        } else {
+            lp = new WindowManager.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.TYPE_NAVIGATION_BAR,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    | WindowManager.LayoutParams.FLAG_TOUCHABLE_WHEN_WAKING
+                    | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH
+                    | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                    PixelFormat.OPAQUE);
+        }
 
         // We explicitly leave FLAG_HARDWARE_ACCELERATED out of the flags.  The status bar occupies
         // very little screen real-estate and is updated fairly frequently.  By using CPU rendering
