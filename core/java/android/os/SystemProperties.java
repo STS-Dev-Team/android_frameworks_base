@@ -34,6 +34,8 @@ public class SystemProperties
     public static final int PROP_VALUE_MAX = 91;
     public static final boolean OMAP_ENHANCEMENT = native_get_boolean("com.ti.omap_enhancement", false);
 
+    public static final boolean QCOM_HARDWARE = native_get_boolean("com.qc.hardware", false);
+
     private static final ArrayList<Runnable> sChangeCallbacks = new ArrayList<Runnable>();
 
     private static native String native_get(String key);
