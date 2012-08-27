@@ -55,6 +55,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.ParcelUuid;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.Log;
 import android.util.Pair;
@@ -2439,7 +2440,15 @@ public class BluetoothService extends IBluetooth.Stub {
     BluetoothDeviceProfileState addProfileState(String address, boolean setTrust) {
         BluetoothDeviceProfileState state =
             new BluetoothDeviceProfileState(mContext, address, this, mA2dpService, setTrust);
-        mDeviceProfileState.put(address, state);
+        if (SystemProperties.OMAP_ENHANCEMENT) {
+            BluetoothDeviceProfileState oldStateMachine  = mDeviceProfileState.put(address, state);
+            if (oldStateMachine != null) {
+                oldStateMachine.quit();
+                oldStateMachine = null;
+            }
+        } else {
+            mDeviceProfileState.put(address, state);
+        }
         state.start();
         return state;
     }
