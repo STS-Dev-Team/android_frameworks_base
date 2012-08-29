@@ -1482,6 +1482,12 @@ public final class Settings {
                 "always_finish_activities";
 
 
+        /** Volume Adjust Sounds Enable, This is the noise made when using volume hard buttons
+        * Defaults to 1 - sounds enabled
+        * @hide
+        */
+        public static final String VOLUME_ADJUST_SOUNDS_ENABLED = "volume_adjust_sounds_enabled";
+
         /**
          * Ringer mode. This is used internally, changing this value will not
          * change the ringer mode. See AudioManager.
@@ -2360,6 +2366,12 @@ public final class Settings {
          * @hide
          */
         public static final String ENABLE_VOLUME_OPTIONS = "enable_volume_options";
+
+        /**
+         * Whether to use the menu key to unlock the screen
+         * @hide
+         */
+        public static final String LOCKSCREEN_MENU_UNLOCK = "lockscreen_menu_unlock";
 
         /**
          * Whether to use the custom quick unlock screen control
