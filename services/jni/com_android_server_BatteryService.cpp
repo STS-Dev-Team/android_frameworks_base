@@ -182,6 +182,20 @@ static void setIntField(JNIEnv* env, jobject obj, const char* path, jfieldID fie
     env->SetIntField(obj, fieldID, value);
 }
 
+// FIXME-HASH: Check for a max value (used in mBatteryLevel)
+static void setIntFieldMax(JNIEnv* env, jobject obj, const char* path, jfieldID fieldID, int maxValue)
+{
+    const int SIZE = 128;
+    char buf[SIZE];
+    
+    jint value = 0;
+    if (readFromFile(path, buf, SIZE) > 0) {
+        value = atoi(buf);
+    }
+    if (value > maxValue) value = maxValue;
+    env->SetIntField(obj, fieldID, value);
+}
+
 static void setVoltageField(JNIEnv* env, jobject obj, const char* path, jfieldID fieldID)
 {
     const int SIZE = 128;
@@ -201,8 +215,8 @@ static void android_server_BatteryService_update(JNIEnv* env, jobject obj)
     setBooleanField(env, obj, gPaths.acOnlinePath, gFieldIds.mAcOnline);
     setBooleanField(env, obj, gPaths.usbOnlinePath, gFieldIds.mUsbOnline);
     setBooleanField(env, obj, gPaths.batteryPresentPath, gFieldIds.mBatteryPresent);
-    
-    setIntField(env, obj, gPaths.batteryCapacityPath, gFieldIds.mBatteryLevel);
+
+    setIntFieldMax(env, obj, gPaths.batteryCapacityPath, gFieldIds.mBatteryLevel, 100);
     setVoltageField(env, obj, gPaths.batteryVoltagePath, gFieldIds.mBatteryVoltage);
     setIntField(env, obj, gPaths.batteryTemperaturePath, gFieldIds.mBatteryTemperature);
     
