@@ -2538,6 +2538,22 @@ public final class Settings {
          */
         public static final String TABLET_UI = "tablet_ui";
 
+        /**
+         * Show the NavBar dialog in Power menu
+         * @hide
+         */
+        public static final String POWER_DIALOG_SHOW_NAVBAR_HIDE = "power_dialog_show_navbar_hide";
+
+         /**
+         * @hide
+         */
+        public static final String POWER_DIALOG_SHOW_SCREENSHOT = "power_dialog_show_screenshot";
+
+         /**
+         * @hide
+         */
+        public static final String POWER_DIALOG_SHOW_AIRPLANE_TOGGLE = "power_dialog_show_airplane_toggle";
+
          /**
          * @hide
          */
@@ -2567,6 +2583,12 @@ public final class Settings {
          * @hide
          */
         public static final String VOLUME_WAKE_SCREEN = "volume_wake_screen";
+
+        /**
+         * Whether volume up/down can be long pressed to skip tracks
+         * @hide
+         */
+        public static final String VOLUME_MUSIC_CONTROLS = "volume_music_controls";
 
         /**
          * NFC polling mode configuration key
@@ -2891,6 +2913,8 @@ public final class Settings {
                 "navigation_custom_app_intent_2",
                 "navigation_custom_app_intent_3",
                 "navigation_custom_app_intent_4",
+                "navigation_custom_app_intent_5",
+                "navigation_custom_app_intent_6",
         };
 
         /**
@@ -2904,6 +2928,8 @@ public final class Settings {
                 "navigation_longpress_app_intent_2",
                 "navigation_longpress_app_intent_3",
                 "navigation_longpress_app_intent_4",
+                "navigation_longpress_app_intent_5",
+                "navigation_longpress_app_intent_6",
         };
 
         /**
@@ -2919,6 +2945,8 @@ public final class Settings {
                 "navigation_custom_app_icon_2",
                 "navigation_custom_app_icon_3",
                 "navigation_custom_app_icon_4",
+                "navigation_custom_app_icon_5",
+                "navigation_custom_app_icon_6",
         };
 
         /**
@@ -2971,6 +2999,14 @@ public final class Settings {
         public static final String LED_CUSTOM_VALUES = "led_custom_values";
 
         /**
+         * What brightness to use for the notificaion LED
+         *
+         * @hide
+         */
+        public static final String LED_BRIGHTNESS = "led_brightness";
+
+
+        /**
 	     *
 	     * @hide
 	     */
@@ -3006,6 +3042,48 @@ public final class Settings {
          * @hide
          */
         public static final String RECENT_KILL_ALL_BUTTON = "recent_kill_all_button";
+
+        /**
+         * whether to enable end app on back longpress functionality
+         *
+         * @hide
+         */
+        public static final String KILL_APP_LONGPRESS_BACK = "kill_app_longpress_back";
+
+        /**
+         * Whether to show statusbar signal text
+         *
+         * @hide
+         */
+        public static final String STATUSBAR_SIGNAL_TEXT = "statusbar_signal_text";
+
+        /**
+         * statusbar signal text color
+         *
+         * @hide
+         */
+        public static final String STATUSBAR_SIGNAL_TEXT_COLOR = "statusbar_signal_text_color";
+
+        /**
+         * whether to hide the signal barss
+         *
+         * @hide
+         */
+        public static final String STATUSBAR_HIDE_SIGNAL_BARS = "statusbar_hide_signal_bars";
+
+        /**
+         * Whether to show statusbar WiFi signal text
+         *
+         * @hide
+         */
+        public static final String STATUSBAR_WIFI_SIGNAL_TEXT = "statusbar_wifi_signal_text";
+
+        /**
+         * statusbar WIFI signal text color
+         *
+         * @hide
+         */
+        public static final String STATUSBAR_WIFI_SIGNAL_TEXT_COLOR = "statusbar_wifi_signal_text_color";
     }
 
     /**
