@@ -300,6 +300,23 @@ public class HTML5VideoFullScreen extends HTML5VideoView
         return true;
     }
 
+    @Override
+    public void pause() {
+        if ("true".equals(System.getProperty("omap.enhancement"))) {
+            if (isPlaying()) {
+                mPlayer.pause();
+            } else if (mCurrentState == STATE_PREPARING) {
+                mPauseDuringPreparing = true;
+            }
+            // Delete the Timer to stop it since there is no stop call.
+            if (mTimer != null) {
+                mTimer.purge();
+                mTimer.cancel();
+                mTimer = null;
+            }
+        }
+    };
+
     // MediaController FUNCTIONS:
     @Override
     public boolean canPause() {

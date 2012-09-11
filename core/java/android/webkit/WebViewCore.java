@@ -1375,6 +1375,9 @@ public final class WebViewCore {
 
                         case RELOAD:
                             mBrowserFrame.reload(false);
+                            if ("true".equals(System.getProperty("omap.enhancement"))) {
+                                System.gc();
+                            }
                             break;
 
                         case KEY_DOWN:
@@ -1416,6 +1419,9 @@ public final class WebViewCore {
                                 mBrowserFrame.reload(true);
                             } else {
                                 mBrowserFrame.goBackOrForward(msg.arg1);
+                            }
+                            if ("true".equals(System.getProperty("omap.enhancement"))) {
+                                System.gc();
                             }
                             break;
 

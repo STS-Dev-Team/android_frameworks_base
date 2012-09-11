@@ -36,6 +36,7 @@ public class SystemProperties
 
     public static final boolean QCOM_HARDWARE = native_get_boolean("com.qc.hardware", false);
 
+    public static final boolean NFCTI_ENHANCEMENT = native_get_boolean("com.ti.nfcti_enhancement", false);
     private static final ArrayList<Runnable> sChangeCallbacks = new ArrayList<Runnable>();
 
     private static native String native_get(String key);

@@ -39,6 +39,47 @@ public class HTML5VideoInline extends HTML5VideoView{
     }
 
     @Override
+    public void pause() {
+        if ("true".equals(System.getProperty("omap.enhancement"))) {
+            if (isPlaying()) {
+                mPlayer.pause();
+                mPlayer.stop();
+                mPlayer.reset();
+                deleteSurfaceTexture();
+            } else if (mCurrentState == STATE_PREPARING) {
+                mPauseDuringPreparing = true;
+            }
+            mCurrentState = STATE_RESETTED;
+            // Delete the Timer to stop it since there is no stop call.
+            if (mTimer != null) {
+                mTimer.purge();
+                mTimer.cancel();
+                mTimer = null;
+            }
+        }
+    };
+
+    public void stop() {
+        if (mPlayer != null) {
+            mPlayer.stop();
+            deleteSurfaceTexture();
+            mPlayer.reset();
+            mPlayer = null;
+            mCurrentState = STATE_RESETTED;
+        }
+    }
+
+    @Override
+    public void reset() {
+        if (mCurrentState != STATE_RESETTED) {
+            mPlayer.stop();
+            deleteSurfaceTexture();
+        }
+
+        super.reset();
+    }
+
+    @Override
     public void decideDisplayMode() {
         SurfaceTexture surfaceTexture = getSurfaceTexture(getVideoLayerId());
         Surface surface = new Surface(surfaceTexture);
@@ -95,7 +136,20 @@ public class HTML5VideoInline extends HTML5VideoView{
     }
 
     public static void cleanupSurfaceTexture() {
+        if ("true".equals(System.getProperty("omap.enhancement"))) {
+            if (mSurfaceTexture != null) {
+                mSurfaceTexture.release();
+            }
+        }
         mSurfaceTexture = null;
+
+        if ("true".equals(System.getProperty("omap.enhancement"))) {
+            if (mTextureNames != null) {
+                GLES20.glDeleteTextures(1, mTextureNames, 0);
+            }
+            mTextureNames = null;
+        }
+
         mVideoLayerUsingSurfaceTexture = -1;
         return;
     }

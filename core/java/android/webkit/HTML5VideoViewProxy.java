@@ -274,6 +274,12 @@ class HTML5VideoViewProxy extends Handler
             }
         }
 
+        public static void stop(HTML5VideoViewProxy proxy) {
+            if (mCurrentProxy == proxy && mHTML5VideoView != null) {
+                mHTML5VideoView.stop();
+            }
+        }
+
         public static void onPrepared() {
             if (!mHTML5VideoView.isFullScreenMode()) {
                 mHTML5VideoView.start();
@@ -382,6 +388,9 @@ class HTML5VideoViewProxy extends Handler
             case ENDED:
                 if (msg.arg1 == 1)
                     VideoPlayer.isVideoSelfEnded = true;
+                if ("true".equals(System.getProperty("omap.enhancement"))) {
+                    VideoPlayer.stop(this);
+                }
                 VideoPlayer.end();
                 break;
             case ERROR: {

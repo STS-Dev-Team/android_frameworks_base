@@ -82,17 +82,22 @@ public class HTML5VideoView implements MediaPlayer.OnPreparedListener {
     }
 
     public void pause() {
-        if (isPlaying()) {
-            mPlayer.pause();
-        } else if (mCurrentState == STATE_PREPARING) {
-            mPauseDuringPreparing = true;
+        if (!("true".equals(System.getProperty("omap.enhancement")))) {
+            if (isPlaying()) {
+                mPlayer.pause();
+            } else if (mCurrentState == STATE_PREPARING) {
+                mPauseDuringPreparing = true;
+            }
+            // Delete the Timer to stop it since there is no stop call.
+            if (mTimer != null) {
+                mTimer.purge();
+                mTimer.cancel();
+                mTimer = null;
+            }
         }
-        // Delete the Timer to stop it since there is no stop call.
-        if (mTimer != null) {
-            mTimer.purge();
-            mTimer.cancel();
-            mTimer = null;
-        }
+    }
+
+    public void stop() {
     }
 
     public int getDuration() {
@@ -127,7 +132,14 @@ public class HTML5VideoView implements MediaPlayer.OnPreparedListener {
 
     public void reset() {
         if (mCurrentState != STATE_RESETTED) {
+            if ("true".equals(System.getProperty("omap.enhancement"))) {
+                mPlayer.stop();
+            }
             mPlayer.reset();
+            if ("true".equals(System.getProperty("omap.enhancement"))) {
+                mPlayer.release();
+                mPlayer = null;
+            }
         }
         mCurrentState = STATE_RESETTED;
     }
