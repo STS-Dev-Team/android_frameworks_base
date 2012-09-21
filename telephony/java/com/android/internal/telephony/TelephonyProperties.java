@@ -192,4 +192,10 @@ public interface TelephonyProperties
      * Set to true to indicates support for simultaneous voice and data.
      */
     static final String PROPERTY_SVDATA = "ro.config.svlte1x";
+    
+    /**
+     * Property to control EONS.
+     * Type: boolean ( true = EONS enabled, false = EONS disabled)
+     */
+    static final String PROPERTY_EONS_ENABLED = "persist.radio.eons.enabled";
 }
