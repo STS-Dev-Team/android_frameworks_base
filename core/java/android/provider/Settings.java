@@ -2078,6 +2078,14 @@ public final class Settings {
         public static final String POINTER_LOCATION = "pointer_location";
 
         /**
+         * Show icon when stylus is used?
+         * 0 = no
+         * 1 = yes
+         * @hide
+         */
+        public static final String STYLUS_ICON_ENABLED = "stylus_icon_enabled";
+
+        /**
          * Show touch positions on screen?
          * 0 = no
          * 1 = yes
@@ -2652,6 +2660,26 @@ public final class Settings {
          */
         public static final String SYSTEMUI_SOFTKEY_SCREENOFF = "screenoff";
 
+        /**
+         * hide
+         */
+		public static final String SYSTEMUI_SOFTKEY_IME_SWITCHER = "ime_switcher";
+
+        /**
+         * hide
+         */
+		public static final String SYSTEMUI_SOFTKEY_RING_VIB = "ring_vib";
+
+        /**
+         * hide
+         */
+		public static final String SYSTEMUI_SOFTKEY_RING_SILENT = "ring_silent";
+
+        /**
+         * hide
+         */
+		public static final String SYSTEMUI_SOFTKEY_RING_VIB_SILENT = "ring_vib_silent";
+		
         /**
          * hide
          */
