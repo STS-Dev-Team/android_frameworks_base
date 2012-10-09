@@ -198,4 +198,16 @@ public interface TelephonyProperties
      * Type: boolean ( true = EONS enabled, false = EONS disabled)
      */
     static final String PROPERTY_EONS_ENABLED = "persist.radio.eons.enabled";
+
+     /**
+     * Set to true to indicate a Motorola phone which needs OEM specific code
+     * for handling LTE/CDMA/GSM
+     */
+    static final String PROPERTY_MOTO_OEM = "persist.ril.moto_oem";
+
+     /**
+     * Set to true to indicate a Motorola phone which needs OEM specific code
+     * for handling getIMSI
+     */
+    static final String PROPERTY_IMSI_FIX = "persist.ril.imsi_fix";
 }
