@@ -42,6 +42,7 @@ import com.android.internal.telephony.BaseCommands;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.RILConstants;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.util.XmlUtils;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.internal.widget.LockPatternView;
@@ -1505,6 +1506,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
             // Set default noise suppression value
             loadSetting(stmt, Settings.System.NOISE_SUPPRESSION, 0);
+
+            // Set the value of MOTO OEM for toggle use
+            loadSetting(stmt, Settings.System.MOTO_OEM_STATE,
+                "true".equalsIgnoreCase(SystemProperties.get(TelephonyProperties.PROPERTY_MOTO_OEM, "true")) ? "1" : "0");
+
+            // Set the value of IMSI FIX for toggle use
+            loadSetting(stmt, Settings.System.IMSI_FIX_STATE,
+                "true".equalsIgnoreCase(SystemProperties.get(TelephonyProperties.PROPERTY_IMSI_FIX, "true")) ? "1" : "0");
 
             loadBooleanSetting(stmt, Settings.System.AIRPLANE_MODE_ON,
                     R.bool.def_airplane_mode_on);

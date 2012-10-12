@@ -203,11 +203,11 @@ public interface TelephonyProperties
      * Set to true to indicate a Motorola phone which needs OEM specific code
      * for handling LTE/CDMA/GSM
      */
-    static final String PROPERTY_MOTO_OEM = "persist.ril.moto_oem";
+    static final String PROPERTY_MOTO_OEM = "persist.sys.moto_oem_telephony";
 
      /**
      * Set to true to indicate a Motorola phone which needs OEM specific code
      * for handling getIMSI
      */
-    static final String PROPERTY_IMSI_FIX = "persist.ril.imsi_fix";
+    static final String PROPERTY_IMSI_FIX = "persist.sys.moto_imsi_fix";
 }

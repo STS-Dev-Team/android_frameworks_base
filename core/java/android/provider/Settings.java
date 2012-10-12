@@ -1243,6 +1243,19 @@ public final class Settings {
          */
         public static final String AIRPLANE_MODE_ON = "airplane_mode_on";
 
+
+        /**
+         * Setting to indicate a Motorola phone which needs OEM specific code
+         * @see com.android.internal.telephony.RIL
+         */
+        public static final String MOTO_OEM_STATE = "moto_oem_state";
+
+         /**
+         * Set to true to indicate a Motorola phone which needs OEM specific code
+         * for handling getIMSI
+         */
+        public static final String IMSI_FIX_STATE = "imsi_fix_state";
+
         /**
          * Constant for use in AIRPLANE_MODE_RADIOS to specify Bluetooth radio.
          */
