@@ -1257,6 +1257,11 @@ public final class Settings {
         public static final String IMSI_FIX_STATE = "imsi_fix_state";
 
         /**
+         * Setting to indicate world phone
+         */
+        public static final String WORLD_PHONE_STATE = "world_phone_state";
+
+        /**
          * Constant for use in AIRPLANE_MODE_RADIOS to specify Bluetooth radio.
          */
         public static final String RADIO_BLUETOOTH = "bluetooth";

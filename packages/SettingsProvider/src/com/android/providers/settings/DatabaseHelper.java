@@ -1515,6 +1515,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             loadSetting(stmt, Settings.System.IMSI_FIX_STATE,
                 "true".equalsIgnoreCase(SystemProperties.get(TelephonyProperties.PROPERTY_IMSI_FIX, "true")) ? "1" : "0");
 
+            // Set default World Phone mode
+            loadSetting(stmt, Settings.System.WORLD_PHONE_STATE, 0);
+
             loadBooleanSetting(stmt, Settings.System.AIRPLANE_MODE_ON,
                     R.bool.def_airplane_mode_on);
 
