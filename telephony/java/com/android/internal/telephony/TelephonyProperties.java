@@ -210,4 +210,9 @@ public interface TelephonyProperties
      * for handling getIMSI
      */
     static final String PROPERTY_IMSI_FIX = "persist.sys.moto_imsi_fix";
+
+    /**
+     * Set to true to indicate a phone which isn't world capable
+     */
+    static final String PROPERTY_NOT_WORLD_PHONE = "ro.config.not_world_phone";
 }
