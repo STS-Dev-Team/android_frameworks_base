@@ -23,6 +23,8 @@ import android.os.Parcelable;
 import android.os.SystemProperties;
 import android.util.Log;
 
+import com.android.internal.telephony.TelephonyProperties;
+
 /**
  * Contains phone signal strength related information.
  */
@@ -30,6 +32,8 @@ public class SignalStrength implements Parcelable {
 
     private static final String LOG_TAG = "SignalStrength";
     private static final boolean DBG = false;
+
+    private boolean mGSMSignalStrengthFix = SystemProperties.getBoolean(TelephonyProperties.PROPERTY_GSM_SIGNALSTRENGTH_FIX, true);
 
     /** @hide */
     public static final int SIGNAL_STRENGTH_NONE_OR_UNKNOWN = 0;
@@ -375,7 +379,7 @@ public class SignalStrength implements Parcelable {
         if (isGsm) {
             boolean oldRil = needsOldRilFeature("signalstrength");
             level = getLteLevel();
-            if (level == SIGNAL_STRENGTH_NONE_OR_UNKNOWN || oldRil) {
+            if (level == SIGNAL_STRENGTH_NONE_OR_UNKNOWN || oldRil || mGSMSignalStrengthFix) {
                 level = getGsmLevel();
             }
         } else {
@@ -405,7 +409,7 @@ public class SignalStrength implements Parcelable {
         int asuLevel;
         if (isGsm) {
             boolean oldRil = needsOldRilFeature("signalstrength");
-            if (getLteLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN || oldRil) {
+            if (getLteLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN || oldRil || mGSMSignalStrengthFix) {
                 asuLevel = getGsmAsuLevel();
             } else {
                 asuLevel = getLteAsuLevel();
@@ -438,7 +442,7 @@ public class SignalStrength implements Parcelable {
 
         if(isGsm()) {
             boolean oldRil = needsOldRilFeature("signalstrength");
-            if (getLteLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN || oldRil) {
+            if (getLteLevel() == SIGNAL_STRENGTH_NONE_OR_UNKNOWN || oldRil || mGSMSignalStrengthFix) {
                 dBm = getGsmDbm();
             } else {
                 dBm = getLteDbm();

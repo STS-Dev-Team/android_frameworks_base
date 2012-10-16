@@ -215,4 +215,9 @@ public interface TelephonyProperties
      * Set to true to indicate a phone which isn't world capable
      */
     static final String PROPERTY_NOT_WORLD_PHONE = "ro.config.not_world_phone";
+
+    /**
+     * Set to true to indicate a phone which needs GSM Signal Strength Fix
+     */
+    static final String PROPERTY_GSM_SIGNALSTRENGTH_FIX = "persist.sys.gsm_signalstrength";
 }

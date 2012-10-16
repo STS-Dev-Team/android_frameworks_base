@@ -1261,6 +1261,11 @@ public final class Settings {
          */
         public static final String WORLD_PHONE_STATE = "world_phone_state";
 
+         /**
+         * Set to true to indicate a phone which needs GSM Signal Strength Fix
+         */
+        public static final String GSM_SIGNALSTRENGTH_FIX_STATE = "gsm_signalstrength_fix_state";
+
         /**
          * Constant for use in AIRPLANE_MODE_RADIOS to specify Bluetooth radio.
          */

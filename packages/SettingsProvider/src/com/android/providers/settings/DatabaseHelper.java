@@ -1518,6 +1518,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // Set default World Phone mode
             loadSetting(stmt, Settings.System.WORLD_PHONE_STATE, 0);
 
+            // Set the value of GSM Signal Strength FIX for toggle use
+            loadSetting(stmt, Settings.System.GSM_SIGNALSTRENGTH_FIX_STATE,
+                "true".equalsIgnoreCase(SystemProperties.get(TelephonyProperties.PROPERTY_GSM_SIGNALSTRENGTH_FIX, "true")) ? "1" : "0");
+
             loadBooleanSetting(stmt, Settings.System.AIRPLANE_MODE_ON,
                     R.bool.def_airplane_mode_on);
 
