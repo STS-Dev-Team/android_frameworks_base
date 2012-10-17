@@ -120,4 +120,11 @@ public class PhoneConstants {
     /** APN type for CBS */
     public static final String APN_TYPE_CBS = "cbs";
 
+    /**
+     * Return codes for supplyPinReturnResult and
+     * supplyPukReturnResult APIs
+     */
+    public static final int PIN_RESULT_SUCCESS = 0;
+    public static final int PIN_PASSWORD_INCORRECT = 1;
+    public static final int PIN_GENERAL_FAILURE = 2;
 }

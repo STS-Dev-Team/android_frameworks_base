@@ -905,6 +905,8 @@ class KeyguardStatusViewManager implements OnClickListener {
                 return StatusMode.SimPermDisabled;
             case UNKNOWN:
                 return StatusMode.SimMissing;
+            case CARD_IO_ERROR:
+                return StatusMode.SimIOError;
         }
         return StatusMode.SimMissing;
     }
@@ -981,6 +983,12 @@ class KeyguardStatusViewManager implements OnClickListener {
                     mEmergencyButtonEnabledBecauseSimLocked = true;
                 }
                 break;
+
+            case SimIOError:
+                carrierText = makeCarierString(mPlmn,
+                        getContext().getText(R.string.lockscreen_sim_error_message_short));
+                 mEmergencyButtonEnabledBecauseSimLocked = true;
+                break;
         }
 
         setCarrierText(carrierText);
@@ -1043,7 +1051,12 @@ class KeyguardStatusViewManager implements OnClickListener {
         /**
          * The sim card is permanently disabled due to puk unlock failure
          */
-        SimPermDisabled(false);
+        SimPermDisabled(false),
+
+        /**
+         * The sim card is faulty
+         */
+        SimIOError(true);
 
         private final boolean mShowStatusLines;
 
