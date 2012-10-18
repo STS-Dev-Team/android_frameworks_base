@@ -180,6 +180,9 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
 
     private boolean mMediaServerOk;
 
+    private static final String ACTION_FMRx_PLUG = "ti.android.intent.action.FMRx_PLUG";
+    private static final String ACTION_FMTx_PLUG = "ti.android.intent.action.FMTx_PLUG";
+
     private SoundPool mSoundPool;
     private final Object mSoundEffectsLock = new Object();
     private static final int NUM_SOUNDPOOL_CHANNELS = 4;
@@ -480,6 +483,10 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
         intentFilter.addAction(Intent.ACTION_USB_AUDIO_ACCESSORY_PLUG);
         intentFilter.addAction(Intent.ACTION_USB_AUDIO_DEVICE_PLUG);
         intentFilter.addAction(Intent.ACTION_BOOT_COMPLETED);
+        if ( SystemProperties.OMAP_ENHANCEMENT) {
+           intentFilter.addAction(ACTION_FMRx_PLUG);
+           intentFilter.addAction(ACTION_FMTx_PLUG);
+        }
         intentFilter.addAction(Intent.ACTION_SCREEN_ON);
         intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
         intentFilter.addAction(Intent.ACTION_HEADSET_PLUG);
@@ -3559,6 +3566,34 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
                     if (noDelayInATwoDP) {
                         setBluetoothA2dpOnInt(true);
                     }
+                }
+            } else if ( SystemProperties.OMAP_ENHANCEMENT && action.equals(ACTION_FMRx_PLUG)) {
+               state = intent.getIntExtra("state",0);
+               Log.i(TAG,"Broadcast Receiver: Got ACTION_FMRx_PLUG, state ="+state);
+               boolean isConnected =
+                   mConnectedDevices.containsKey(AudioSystem.DEVICE_IN_FM_RADIO_RX );
+               if (state == 0 && isConnected) {
+                      AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_IN_FM_RADIO_RX ,
+                               AudioSystem.DEVICE_STATE_UNAVAILABLE,"");
+                      mConnectedDevices.remove(AudioSystem.DEVICE_IN_FM_RADIO_RX );
+               } else if (state == 1 && !isConnected)  {
+                      AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_IN_FM_RADIO_RX ,
+                                AudioSystem.DEVICE_STATE_AVAILABLE,"");
+                      mConnectedDevices.put( new Integer(AudioSystem.DEVICE_IN_FM_RADIO_RX ), "");
+               }
+            } else if ( SystemProperties.OMAP_ENHANCEMENT && action.equals(ACTION_FMTx_PLUG)) {
+                state = intent.getIntExtra("state",0);
+                Log.i(TAG,"Broadcast Receiver: Got Action_FMTx_PLUG, state ="+state);
+                boolean isConnected =
+                   mConnectedDevices.containsKey(AudioSystem.DEVICE_OUT_FM_RADIO_TX );
+                if (state == 0 && isConnected) {
+                       AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_OUT_FM_RADIO_TX ,
+                                AudioSystem.DEVICE_STATE_UNAVAILABLE,"");
+                       mConnectedDevices.remove(AudioSystem.DEVICE_OUT_FM_RADIO_TX );
+                } else if (state == 1 && !isConnected)  {
+                       AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_OUT_FM_RADIO_TX ,
+                                 AudioSystem.DEVICE_STATE_AVAILABLE,"");
+                       mConnectedDevices.put( new Integer(AudioSystem.DEVICE_OUT_FM_RADIO_TX ), "");
                 }
             } else if (action.equals(Intent.ACTION_USB_AUDIO_ACCESSORY_PLUG) ||
                            action.equals(Intent.ACTION_USB_AUDIO_DEVICE_PLUG)) {

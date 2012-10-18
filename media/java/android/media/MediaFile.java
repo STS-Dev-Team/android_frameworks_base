@@ -24,6 +24,7 @@ import android.media.DecoderCapabilities;
 import android.media.DecoderCapabilities.VideoDecoder;
 import android.media.DecoderCapabilities.AudioDecoder;
 import android.mtp.MtpConstants;
+import android.os.SystemProperties;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -172,6 +173,7 @@ public class MediaFile {
 
     static {
         addFileType("MP3", FILE_TYPE_MP3, "audio/mpeg", MtpConstants.FORMAT_MP3);
+        addFileType("MPGA", FILE_TYPE_MP3, "audio/mpeg", MtpConstants.FORMAT_MP3);
         addFileType("M4A", FILE_TYPE_M4A, "audio/mp4", MtpConstants.FORMAT_MPEG);
         addFileType("WAV", FILE_TYPE_WAV, "audio/x-wav", MtpConstants.FORMAT_WAV);
         addFileType("AMR", FILE_TYPE_AMR, "audio/amr");
@@ -211,8 +213,18 @@ public class MediaFile {
         addFileType("AVI", FILE_TYPE_AVI, "video/avi");
 
         if (isWMVEnabled()) {
-            addFileType("WMV", FILE_TYPE_WMV, "video/x-ms-wmv", MtpConstants.FORMAT_WMV);
+            if(SystemProperties.OMAP_ENHANCEMENT) {
+                addFileType("WMV", FILE_TYPE_WMV, "video/asf", MtpConstants.FORMAT_WMV);
+            } else {
+                addFileType("WMV", FILE_TYPE_WMV, "video/x-ms-wmv", MtpConstants.FORMAT_WMV);
+            }
             addFileType("ASF", FILE_TYPE_ASF, "video/x-ms-asf");
+        }
+
+        if(SystemProperties.OMAP_ENHANCEMENT) {
+            addFileType("WMA", FILE_TYPE_WMA, "audio/x-ms-wma");
+            addFileType("WMV", FILE_TYPE_WMV, "video/asf");
+            addFileType("ASF", FILE_TYPE_ASF, "video/asf");
         }
 
         addFileType("JPG", FILE_TYPE_JPEG, "image/jpeg", MtpConstants.FORMAT_EXIF_JPEG);

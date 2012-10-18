@@ -969,4 +969,6 @@
     <!-- Asus dock compatibility disabled by default -->
     <bool name="config_hasDockBattery">false</bool>
 
+    <!-- The default value if the SyncStorageEngine should sync automatically or not -->
+    <bool name="config_syncstorageengine_masterSyncAutomatically">true</bool>
 </resources>

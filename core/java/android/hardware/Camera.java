@@ -26,6 +26,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.text.TextUtils;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
@@ -34,7 +35,6 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.StringTokenizer;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -2232,7 +2232,7 @@ public class Camera {
         private HashMap<String, String> mMap;
 
         private Parameters() {
-            mMap = new HashMap<String, String>();
+            mMap = new HashMap<String, String>(64);
         }
 
         /**
@@ -2256,7 +2256,7 @@ public class Camera {
          *         semi-colon delimited key-value pairs
          */
         public String flatten() {
-            StringBuilder flattened = new StringBuilder();
+            StringBuilder flattened = new StringBuilder(128);
             for (String k : mMap.keySet()) {
                 flattened.append(k);
                 flattened.append("=");
@@ -2279,9 +2279,9 @@ public class Camera {
         public void unflatten(String flattened) {
             mMap.clear();
 
-            StringTokenizer tokenizer = new StringTokenizer(flattened, ";");
-            while (tokenizer.hasMoreElements()) {
-                String kv = tokenizer.nextToken();
+            TextUtils.StringSplitter splitter = new TextUtils.SimpleStringSplitter(';');
+            splitter.setString(flattened);
+            for (String kv : splitter) {
                 int pos = kv.indexOf('=');
                 if (pos == -1) {
                     continue;
@@ -4584,11 +4584,11 @@ public class Camera {
         private ArrayList<String> split(String str) {
             if (str == null) return null;
 
-            // Use StringTokenizer because it is faster than split.
-            StringTokenizer tokenizer = new StringTokenizer(str, ",");
+            TextUtils.StringSplitter splitter = new TextUtils.SimpleStringSplitter(',');
+            splitter.setString(str);
             ArrayList<String> substrings = new ArrayList<String>();
-            while (tokenizer.hasMoreElements()) {
-                substrings.add(tokenizer.nextToken());
+            for (String s : splitter) {
+                substrings.add(s);
             }
             return substrings;
         }
@@ -4598,11 +4598,11 @@ public class Camera {
         private ArrayList<Integer> splitInt(String str) {
             if (str == null) return null;
 
-            StringTokenizer tokenizer = new StringTokenizer(str, ",");
+            TextUtils.StringSplitter splitter = new TextUtils.SimpleStringSplitter(',');
+            splitter.setString(str);
             ArrayList<Integer> substrings = new ArrayList<Integer>();
-            while (tokenizer.hasMoreElements()) {
-                String token = tokenizer.nextToken();
-                substrings.add(Integer.parseInt(token));
+            for (String s : splitter) {
+                substrings.add(Integer.parseInt(s));
             }
             if (substrings.size() == 0) return null;
             return substrings;
@@ -4611,11 +4611,11 @@ public class Camera {
         private void splitInt(String str, int[] output) {
             if (str == null) return;
 
-            StringTokenizer tokenizer = new StringTokenizer(str, ",");
+            TextUtils.StringSplitter splitter = new TextUtils.SimpleStringSplitter(',');
+            splitter.setString(str);
             int index = 0;
-            while (tokenizer.hasMoreElements()) {
-                String token = tokenizer.nextToken();
-                output[index++] = Integer.parseInt(token);
+            for (String s : splitter) {
+                output[index++] = Integer.parseInt(s);
             }
         }
 
@@ -4623,11 +4623,11 @@ public class Camera {
         private void splitFloat(String str, float[] output) {
             if (str == null) return;
 
-            StringTokenizer tokenizer = new StringTokenizer(str, ",");
+            TextUtils.StringSplitter splitter = new TextUtils.SimpleStringSplitter(',');
+            splitter.setString(str);
             int index = 0;
-            while (tokenizer.hasMoreElements()) {
-                String token = tokenizer.nextToken();
-                output[index++] = Float.parseFloat(token);
+            for (String s : splitter) {
+                output[index++] = Float.parseFloat(s);
             }
         }
 
@@ -4654,10 +4654,11 @@ public class Camera {
         private ArrayList<Size> splitSize(String str) {
             if (str == null) return null;
 
-            StringTokenizer tokenizer = new StringTokenizer(str, ",");
+            TextUtils.StringSplitter splitter = new TextUtils.SimpleStringSplitter(',');
+            splitter.setString(str);
             ArrayList<Size> sizeList = new ArrayList<Size>();
-            while (tokenizer.hasMoreElements()) {
-                Size size = strToSize(tokenizer.nextToken());
+            for (String s : splitter) {
+                Size size = strToSize(s);
                 if (size != null) sizeList.add(size);
             }
             if (sizeList.size() == 0) return null;

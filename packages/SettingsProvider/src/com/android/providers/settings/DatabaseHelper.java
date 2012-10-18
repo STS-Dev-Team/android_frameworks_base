@@ -33,13 +33,16 @@ import android.net.ConnectivityManager;
 import android.os.SystemProperties;
 import android.provider.Settings;
 import android.provider.Settings.Secure;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.internal.content.PackageHelper;
 import com.android.internal.telephony.BaseCommands;
 import com.android.internal.telephony.Phone;
+import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.RILConstants;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.util.XmlUtils;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.internal.widget.LockPatternView;
@@ -1506,6 +1509,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             // Set default noise suppression value
             loadSetting(stmt, Settings.System.NOISE_SUPPRESSION, 0);
 
+            // Set the value of MOTO OEM for toggle use
+            loadSetting(stmt, Settings.System.MOTO_OEM_STATE,
+                "true".equalsIgnoreCase(SystemProperties.get(TelephonyProperties.PROPERTY_MOTO_OEM, "true")) ? "1" : "0");
+
+            // Set the value of IMSI FIX for toggle use
+            loadSetting(stmt, Settings.System.IMSI_FIX_STATE,
+                "true".equalsIgnoreCase(SystemProperties.get(TelephonyProperties.PROPERTY_IMSI_FIX, "true")) ? "1" : "0");
+
+            // Set default World Phone mode
+            loadSetting(stmt, Settings.System.WORLD_PHONE_STATE, 0);
+
+            // Set the value of GSM Signal Strength FIX for toggle use
+            loadSetting(stmt, Settings.System.GSM_SIGNALSTRENGTH_FIX_STATE,
+                "true".equalsIgnoreCase(SystemProperties.get(TelephonyProperties.PROPERTY_GSM_SIGNALSTRENGTH_FIX, "true")) ? "1" : "0");
+
             loadBooleanSetting(stmt, Settings.System.AIRPLANE_MODE_ON,
                     R.bool.def_airplane_mode_on);
 
@@ -1612,6 +1630,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                             SystemProperties.get("ro.com.android.dataroaming",
                                     "false")) ? 1 : 0);
 
+            // Mobile Data default, based on build
+            loadSetting(stmt, Settings.Secure.MOBILE_DATA,
+                    "true".equalsIgnoreCase(
+                            SystemProperties.get("ro.com.android.mobiledata",
+                                    "true")) ? 1 : 0);
+
             loadBooleanSetting(stmt, Settings.Secure.INSTALL_NON_MARKET_APPS,
                     R.bool.def_install_non_market_apps);
 
@@ -1639,12 +1663,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
             // Set the preferred network mode to 0 = Global, CDMA default
             int type;
-            if (BaseCommands.getLteOnCdmaModeStatic() == Phone.LTE_ON_CDMA_TRUE) {
-                type = Phone.NT_MODE_GLOBAL;
-            } else {
-                type = SystemProperties.getInt("ro.telephony.default_network",
+            type = SystemProperties.getInt("ro.telephony.default_network",
                         RILConstants.PREFERRED_NETWORK_MODE);
-            }
             loadSetting(stmt, Settings.Secure.PREFERRED_NETWORK_MODE, type);
 
             // Enable or disable Cell Broadcast SMS

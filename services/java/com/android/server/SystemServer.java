@@ -100,7 +100,7 @@ class ServerThread extends Thread {
         EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_SYSTEM_RUN,
             SystemClock.uptimeMillis());
 
-        Looper.prepare();
+        Looper.prepareMainLooper();
 
         android.os.Process.setThreadPriority(
                 android.os.Process.THREAD_PRIORITY_FOREGROUND);
@@ -526,7 +526,14 @@ class ServerThread extends Thread {
             } catch (Throwable e) {
                 reportWtf("starting DeviceStorageMonitor service", e);
             }
-
+            if(SystemProperties.OMAP_ENHANCEMENT) {
+            try {
+                Slog.i(TAG, "starting SUPL Service (SystemServer)");
+                ServiceManager.addService("SUPL_SERVICE",SUPLService.getInstance(context));
+            } catch (Throwable e) {
+                Slog.e(TAG,"Failure installing SUPL Service", e);
+            }
+            }
             try {
                 Slog.i(TAG, "Location Manager");
                 location = new LocationManagerService(context);
@@ -748,6 +755,12 @@ class ServerThread extends Thread {
             reportWtf("making Vibrator Service ready", e);
         }
 
+        try {
+            lockSettings.systemReady();
+        } catch (Throwable e) {
+            reportWtf("making Lock Settings Service ready", e);
+        }
+
         if (devicePolicy != null) {
             try {
                 devicePolicy.systemReady();
@@ -788,11 +801,6 @@ class ServerThread extends Thread {
             pm.systemReady();
         } catch (Throwable e) {
             reportWtf("making Package Manager Service ready", e);
-        }
-        try {
-            lockSettings.systemReady();
-        } catch (Throwable e) {
-            reportWtf("making Lock Settings Service ready", e);
         }
 
         IntentFilter filter = new IntentFilter();

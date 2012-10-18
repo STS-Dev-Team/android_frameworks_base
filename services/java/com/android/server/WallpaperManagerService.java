@@ -45,8 +45,10 @@ import android.os.RemoteException;
 import android.os.FileObserver;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteCallbackList;
+import android.os.SELinux;
 import android.os.ServiceManager;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.UserId;
 import android.service.wallpaper.IWallpaperConnection;
 import android.service.wallpaper.IWallpaperEngine;
@@ -533,6 +535,15 @@ class WallpaperManagerService extends IWallpaperManager.Stub {
                 com.android.internal.R.integer.config_wallpaperMaxWidth);
         if (maxWidth != -1 && width > maxWidth) {
             width = maxWidth;
+
+        if (SystemProperties.OMAP_ENHANCEMENT) {
+            WindowManager wm = (WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE);
+            int maxTextureSize = wm.getDefaultDisplay().getMaximumTextureSize();
+
+            if (maxTextureSize > 0) {
+                if (width > maxTextureSize) width = maxTextureSize;
+                if (height > maxTextureSize) height = maxTextureSize;
+            }
         }
 
         synchronized (mLock) {
@@ -645,8 +656,12 @@ class WallpaperManagerService extends IWallpaperManager.Stub {
                         FileUtils.S_IRWXU|FileUtils.S_IRWXG|FileUtils.S_IXOTH,
                         -1, -1);
             }
-            ParcelFileDescriptor fd = ParcelFileDescriptor.open(new File(dir, WALLPAPER),
+            File file = new File(dir, WALLPAPER);
+            ParcelFileDescriptor fd = ParcelFileDescriptor.open(file,
                     MODE_CREATE|MODE_READ_WRITE);
+            if (!SELinux.restorecon(file)) {
+                return null;
+            }
             wallpaper.name = name;
             return fd;
         } catch (FileNotFoundException e) {

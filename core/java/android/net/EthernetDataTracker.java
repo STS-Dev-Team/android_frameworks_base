@@ -25,6 +25,7 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.util.Log;
+import android.os.SystemProperties;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -223,7 +224,11 @@ public class EthernetDataTracker implements NetworkStateTracker {
                     mIface = iface;
                     mNMService.setInterfaceUp(iface);
                     InterfaceConfiguration config = mNMService.getInterfaceConfig(iface);
-                    mLinkUp = config.isActive();
+                    if (SystemProperties.OMAP_ENHANCEMENT) {
+                        mLinkUp = config.hasFlag("up");
+                    } else {
+                        mLinkUp = config.isActive();
+                    }
                     if (config != null && mHwAddr == null) {
                         mHwAddr = config.getHardwareAddress();
                         if (mHwAddr != null) {

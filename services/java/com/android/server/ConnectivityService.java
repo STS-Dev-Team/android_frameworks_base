@@ -78,6 +78,7 @@ import android.util.SparseIntArray;
 import com.android.internal.net.LegacyVpnInfo;
 import com.android.internal.net.VpnConfig;
 import com.android.internal.telephony.Phone;
+import com.android.internal.telephony.PhoneConstants;
 import com.android.server.am.BatteryStatsService;
 import com.android.server.connectivity.Tethering;
 import com.android.server.connectivity.Vpn;
@@ -1004,7 +1005,7 @@ private NetworkStateTracker makeWimaxStateTracker() {
         try {
             if (!ConnectivityManager.isNetworkTypeValid(networkType) ||
                     mNetConfigs[networkType] == null) {
-                return Phone.APN_REQUEST_FAILED;
+                return PhoneConstants.APN_REQUEST_FAILED;
             }
 
             FeatureUser f = new FeatureUser(networkType, feature, binder);
@@ -1023,7 +1024,7 @@ private NetworkStateTracker makeWimaxStateTracker() {
                 uidRules = mUidRules.get(Binder.getCallingUid(), RULE_ALLOW_ALL);
             }
             if (networkMetered && (uidRules & RULE_REJECT_METERED) != 0) {
-                return Phone.APN_REQUEST_FAILED;
+                return PhoneConstants.APN_REQUEST_FAILED;
             }
 
             NetworkStateTracker network = mNetTrackers[usedNetworkType];
@@ -1035,7 +1036,7 @@ private NetworkStateTracker makeWimaxStateTracker() {
                     if (ni.isAvailable() == false) {
                         if (!TextUtils.equals(feature,Phone.FEATURE_ENABLE_DUN_ALWAYS)) {
                             if (DBG) log("special network not available ni=" + ni.getTypeName());
-                            return Phone.APN_TYPE_NOT_AVAILABLE;
+                            return PhoneConstants.APN_TYPE_NOT_AVAILABLE;
                         } else {
                             // else make the attempt anyway - probably giving REQUEST_STARTED below
                             if (DBG) {
@@ -1084,10 +1085,10 @@ private NetworkStateTracker makeWimaxStateTracker() {
                             } finally {
                                 Binder.restoreCallingIdentity(token);
                             }
-                            return Phone.APN_ALREADY_ACTIVE;
+                            return PhoneConstants.APN_ALREADY_ACTIVE;
                         }
                         if (VDBG) log("special network already connecting");
-                        return Phone.APN_REQUEST_STARTED;
+                        return PhoneConstants.APN_REQUEST_STARTED;
                     }
 
                     // check if the radio in play can make another contact
@@ -1098,7 +1099,7 @@ private NetworkStateTracker makeWimaxStateTracker() {
                                 feature);
                     }
                     network.reconnect();
-                    return Phone.APN_REQUEST_STARTED;
+                    return PhoneConstants.APN_REQUEST_STARTED;
                 } else {
                     // need to remember this unsupported request so we respond appropriately on stop
                     synchronized(this) {
@@ -1111,7 +1112,7 @@ private NetworkStateTracker makeWimaxStateTracker() {
                     return -1;
                 }
             }
-            return Phone.APN_TYPE_NOT_AVAILABLE;
+            return PhoneConstants.APN_TYPE_NOT_AVAILABLE;
          } finally {
             if (DBG) {
                 final long execTime = SystemClock.elapsedRealtime() - startTime;
@@ -2033,7 +2034,7 @@ private NetworkStateTracker makeWimaxStateTracker() {
         //       @see bug/4455071
         /** Notify TetheringService if interface name has been changed. */
         if (TextUtils.equals(mNetTrackers[netType].getNetworkInfo().getReason(),
-                             Phone.REASON_LINK_PROPERTIES_CHANGED)) {
+                             PhoneConstants.REASON_LINK_PROPERTIES_CHANGED)) {
             if (isTetheringSupported()) {
                 mTethering.handleTetherIfaceChange();
             }

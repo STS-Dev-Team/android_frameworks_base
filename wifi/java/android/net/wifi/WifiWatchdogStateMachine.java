@@ -883,8 +883,8 @@ public class WifiWatchdogStateMachine extends StateMachine {
             //test to avoid any wifi connectivity issues
             loge("ARP test initiation failure: " + se);
             success = true;
-        } catch (IllegalArgumentException e) {
-            // ArpPeer throws exception for IPv6 address
+        } catch (IllegalArgumentException ae) {
+            log("ARP test initiation failure: " + ae);
             success = true;
         }
 

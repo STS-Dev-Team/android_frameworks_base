@@ -16,6 +16,15 @@
 
 package com.android.internal.policy.impl;
 
+import com.android.internal.R;
+import com.android.internal.policy.impl.KeyguardUpdateMonitor.InfoCallbackImpl;
+import com.android.internal.policy.impl.KeyguardUpdateMonitor.SimStateCallback;
+import com.android.internal.telephony.IccCardConstants;
+import com.android.internal.widget.LockPatternUtils;
+import com.android.internal.widget.SlidingTab;
+import com.android.internal.widget.WaveView;
+import com.android.internal.widget.multiwaveview.GlowPadView;
+
 import android.app.ActivityManager;
 import android.app.ActivityManagerNative;
 import android.app.SearchManager;
@@ -57,15 +66,7 @@ import android.widget.ImageView.ScaleType;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
-import com.android.internal.R;
-import com.android.internal.policy.impl.KeyguardUpdateMonitor.InfoCallbackImpl;
-import com.android.internal.policy.impl.KeyguardUpdateMonitor.SimStateCallback;
-import com.android.internal.telephony.IccCard.State;
 import com.android.internal.widget.DigitalClock;
-import com.android.internal.widget.LockPatternUtils;
-import com.android.internal.widget.SlidingTab;
-import com.android.internal.widget.WaveView;
-import com.android.internal.widget.multiwaveview.GlowPadView;
 import com.android.internal.widget.multiwaveview.TargetDrawable;
 
 import java.io.File;
@@ -140,7 +141,7 @@ class LockScreen extends LinearLayout implements KeyguardScreen {
     };
 
     SimStateCallback mSimStateCallback = new SimStateCallback() {
-        public void onSimStateChanged(State simState) {
+        public void onSimStateChanged(IccCardConstants.State simState) {
             updateTargets();
         }
     };

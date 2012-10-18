@@ -98,6 +98,7 @@ import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
+import android.os.SELinux;
 import android.os.ServiceManager;
 import android.os.SystemClock;
 import android.os.SystemProperties;
@@ -149,6 +150,7 @@ import java.util.zip.ZipOutputStream;
 import libcore.io.ErrnoException;
 import libcore.io.IoUtils;
 import libcore.io.Libcore;
+import libcore.io.StructStat;
 
 /**
  * Keep track of all those .apks everywhere.
@@ -179,6 +181,7 @@ public class PackageManagerService extends IPackageManager.Stub {
     private static final int RADIO_UID = Process.PHONE_UID;
     private static final int LOG_UID = Process.LOG_UID;
     private static final int NFC_UID = Process.NFC_UID;
+    private static final int FMRADIO_UID = Process.FMRADIO_UID;
 
     private static final boolean GET_CERTIFICATES = true;
 
@@ -300,8 +303,6 @@ public class PackageManagerService extends IPackageManager.Stub {
     // Information for the parser to write more useful error messages.
     File mScanningPath;
     int mLastScanError;
-
-    final int[] mOutPermissions = new int[3];
 
     // ----------------------------------------------------------------
 
@@ -895,6 +896,10 @@ public class PackageManagerService extends IPackageManager.Stub {
         mSettings.addSharedUserLPw("android.uid.log", LOG_UID, ApplicationInfo.FLAG_SYSTEM);
         mSettings.addSharedUserLPw("com.tmobile.thememanager", THEME_MAMANER_GUID, ApplicationInfo.FLAG_SYSTEM);
         mSettings.addSharedUserLPw("android.uid.nfc", NFC_UID, ApplicationInfo.FLAG_SYSTEM);
+
+        if(SystemProperties.OMAP_ENHANCEMENT) {
+            mSettings.addSharedUserLPw("android.uid.fmradio", FMRADIO_UID, ApplicationInfo.FLAG_SYSTEM);
+        }
 
         String separateProcesses = SystemProperties.get("debug.separate_processes");
         if (separateProcesses != null && separateProcesses.length() > 0) {
@@ -3790,14 +3795,18 @@ public class PackageManagerService extends IPackageManager.Stub {
             boolean uidError = false;
 
             if (dataPath.exists()) {
-                // XXX should really do this check for each user.
-                mOutPermissions[1] = 0;
-                FileUtils.getPermissions(dataPath.getPath(), mOutPermissions);
+                int currentUid = 0;
+                try {
+                    StructStat stat = Libcore.os.stat(dataPath.getPath());
+                    currentUid = stat.st_uid;
+                } catch (ErrnoException e) {
+                    Slog.e(TAG, "Couldn't stat path " + dataPath.getPath(), e);
+                }
 
                 // If we have mismatched owners for the data path, we have a problem.
-                if (mOutPermissions[1] != pkg.applicationInfo.uid) {
+                if (currentUid != pkg.applicationInfo.uid) {
                     boolean recovered = false;
-                    if (mOutPermissions[1] == 0) {
+                    if (currentUid == 0) {
                         // The directory somehow became owned by root.  Wow.
                         // This is probably because the system was stopped while
                         // installd was in the middle of messing with its libs
@@ -3826,7 +3835,7 @@ public class PackageManagerService extends IPackageManager.Stub {
                                     ? "System package " : "Third party package ";
                             String msg = prefix + pkg.packageName
                                     + " has changed from uid: "
-                                    + mOutPermissions[1] + " to "
+                                    + currentUid + " to "
                                     + pkg.applicationInfo.uid + "; old data erased";
                             reportSettingsProblem(Log.WARN, msg);
                             recovered = true;
@@ -3858,11 +3867,11 @@ public class PackageManagerService extends IPackageManager.Stub {
                     if (!recovered) {
                         pkg.applicationInfo.dataDir = "/mismatched_uid/settings_"
                             + pkg.applicationInfo.uid + "/fs_"
-                            + mOutPermissions[1];
+                            + currentUid;
                         pkg.applicationInfo.nativeLibraryDir = pkg.applicationInfo.dataDir;
                         String msg = "Package " + pkg.packageName
                                 + " has mismatched uid: "
-                                + mOutPermissions[1] + " on disk, "
+                                + currentUid + " on disk, "
                                 + pkg.applicationInfo.uid + " in settings";
                         // writer
                         synchronized (mPackages) {
@@ -6485,6 +6494,10 @@ public class PackageManagerService extends IPackageManager.Stub {
                     return false;
                 }
 
+                if (!SELinux.restorecon(newCodeFile)) {
+                    return false;
+                }
+
                 return true;
             }
         }
@@ -7543,6 +7556,9 @@ public class PackageManagerService extends IPackageManager.Stub {
             FileUtils.setPermissions(
                     tmpPackageFile.getCanonicalPath(), FileUtils.S_IRUSR|FileUtils.S_IWUSR,
                     -1, -1);
+            if (!SELinux.restorecon(tmpPackageFile)) {
+                return null;
+            }
         } catch (IOException e) {
             Slog.e(TAG, "Trouble getting the canoncical path for a temp file.");
             return null;

@@ -22,6 +22,7 @@ import android.graphics.Rect;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.util.DisplayMetrics;
 import android.util.Slog;
 
@@ -378,6 +379,14 @@ public class Display {
      * @hide
      */
     public int getRawExternalWidth() {
+        if (SystemProperties.OMAP_ENHANCEMENT) {
+            int primaryTv = SystemProperties.getInt("persist.hwc.primary.tv", 0);
+            if (primaryTv == 1) {
+                return getRawWidth();
+            } else {
+                return getMirroringRegion().width();
+            }
+        }
         // Also check height because HDMI cable may be plugged in while we're
         // in portrait mode.
         if (getRawWidth() >= 1920 || getRawHeight() >= 1920) {
@@ -393,11 +402,28 @@ public class Display {
      * @hide
      */
     public int getRawExternalHeight() {
+        if (SystemProperties.OMAP_ENHANCEMENT) {
+            int primaryTv = SystemProperties.getInt("persist.hwc.primary.tv", 0);
+            if (primaryTv == 1) {
+                return getRawHeight();
+            } else {
+                return getMirroringRegion().height();
+            }
+        }
         if (getRawWidth() >= 1920 || getRawHeight() >= 1920) {
             return 1080;
         } else {
             return 720;
         }
+    /**
+     * Gets maximal supported texture size.
+     * @hide
+     */
+    public int getMaximumTextureSize() {
+        if (SystemProperties.OMAP_ENHANCEMENT) {
+            return mMaximumTextureSize;
+        }
+        return -1;
     }
 
     /**
@@ -444,6 +470,40 @@ public class Display {
     
     private native void init(int display);
 
+    /**
+     * If the display is mirrored to an external HDMI display, returns the
+     * region that has to be mirrored on that display.
+     * @hide
+     */
+    private Rect getMirroringRegion() {
+        if (SystemProperties.OMAP_ENHANCEMENT) {
+            if (mMirroringRegion.width() == 0) {
+                mMirroringRegion.set(0, 0, 1280, 720);
+
+                String[] values = SystemProperties.get("persist.hwc.mirroring.region", "").split(":");
+
+                if (values.length == 4) {
+                    try {
+                        int left = Integer.parseInt(values[0]);
+                        int top = Integer.parseInt(values[1]);
+                        int right = Integer.parseInt(values[2]);
+                        int bottom = Integer.parseInt(values[3]);
+
+                        if (left >= right || top >= bottom) {
+                            throw new NumberFormatException();
+                        }
+
+                        mMirroringRegion.set(left, top, right, bottom);
+                    } catch (NumberFormatException e) {
+                    }
+                }
+
+                Slog.i(TAG, "Mirroring region is " + mMirroringRegion);
+            }
+        }
+        return mMirroringRegion;
+    }
+
     private final CompatibilityInfoHolder mCompatibilityInfo;
     private final int   mDisplay;
     // Following fields are initialized from native code
@@ -452,6 +512,8 @@ public class Display {
     /*package*/ float   mDensity;
     /*package*/ float   mDpiX;
     /*package*/ float   mDpiY;
+    private Rect        mMirroringRegion = new Rect();
+    private int         mMaximumTextureSize;
     
     private final Point mTmpPoint = new Point();
     private final DisplayMetrics mTmpMetrics = new DisplayMetrics();
