@@ -415,6 +415,7 @@ public class Display {
         } else {
             return 720;
         }
+    }
     /**
      * Gets maximal supported texture size.
      * @hide
