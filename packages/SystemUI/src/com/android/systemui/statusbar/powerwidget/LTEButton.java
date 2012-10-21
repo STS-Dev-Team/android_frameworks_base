@@ -54,8 +54,7 @@ public class LTEButton extends PowerButton{
             tm.toggleLTE(false);
             mState = STATE_DISABLED;
             Settings.System.putInt(resolver, Settings.System.LTE_MODE, 0);
-        } else if (Phone.NT_MODE_CDMA == network ||
-                     tm.getLteOnGsmMode() != 0) {
+        } else if (Phone.NT_MODE_CDMA == network) {
             tm.toggleLTE(true);
             mState = STATE_ENABLED;
             Settings.System.putInt(resolver, Settings.System.LTE_MODE, 1);
