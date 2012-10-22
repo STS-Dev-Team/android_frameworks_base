@@ -24,6 +24,7 @@ import static android.telephony.TelephonyManager.NETWORK_TYPE_UMTS;
 import static android.telephony.TelephonyManager.NETWORK_TYPE_HSDPA;
 import static android.telephony.TelephonyManager.NETWORK_TYPE_HSUPA;
 import static android.telephony.TelephonyManager.NETWORK_TYPE_HSPA;
+import static android.telephony.TelephonyManager.NETWORK_TYPE_HSPAP;
 /* FIXME HASH: Added Motorola Code */
 import static android.telephony.TelephonyManager.NETWORK_TYPE_CDMA;
 import static android.telephony.TelephonyManager.NETWORK_TYPE_1xRTT;
@@ -3267,6 +3268,10 @@ public class RIL extends BaseCommands implements CommandsInterface {
        // Determine the radio access type
        String radioString = SystemProperties.get(
                TelephonyProperties.PROPERTY_DATA_NETWORK_TYPE, "unknown");
+       if (radioString.contains(":")) {
+           String[] parts = radioString.split(":");
+           radioString = parts[0];
+       }
        int radioType;
        if (radioString.equals("GPRS")) {
            radioType = NETWORK_TYPE_GPRS;
@@ -3280,6 +3285,8 @@ public class RIL extends BaseCommands implements CommandsInterface {
            radioType = NETWORK_TYPE_HSUPA;
        } else if (radioString.equals("HSPA")) {
            radioType = NETWORK_TYPE_HSPA;
+       } else if (radioString.equals("HSPAP")) {
+           radioType = NETWORK_TYPE_HSPAP;
        /* FIXME HASH: BEGIN Motorola Code */
        } else if (radioString.equals("CDMA")) {
            radioType = NETWORK_TYPE_CDMA;
