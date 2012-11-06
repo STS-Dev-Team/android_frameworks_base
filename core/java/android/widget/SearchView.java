@@ -1506,8 +1506,8 @@ public class SearchView extends LinearLayout implements CollapsibleActionView {
         // because the voice search activity will always need to insert "QUERY" into
         // it anyway.
         Bundle queryExtras = new Bundle();
-        if(this.mAppSearchData != null) {
-            queryExtras.putParcelable(SearchManager.APP_DATA, this.mAppSearchData);
+        if (mAppSearchData != null) {
+            queryExtras.putParcelable(SearchManager.APP_DATA, mAppSearchData);
         }
 
         // Now build the intent to launch the voice search.  Add all necessary
@@ -1598,8 +1598,8 @@ public class SearchView extends LinearLayout implements CollapsibleActionView {
             } catch (RuntimeException e2 ) {
                 rowNum = -1;
             }
-            Log.w(LOG_TAG, "Search Suggestions cursor at row " + rowNum +
-                            " returned exception" + e.toString());
+            Log.w(LOG_TAG, "Search suggestions cursor at row " + rowNum +
+                            " returned exception.", e);
             return null;
         }
     }

@@ -100,7 +100,7 @@ class ServerThread extends Thread {
         EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_SYSTEM_RUN,
             SystemClock.uptimeMillis());
 
-        Looper.prepare();
+        Looper.prepareMainLooper();
 
         android.os.Process.setThreadPriority(
                 android.os.Process.THREAD_PRIORITY_FOREGROUND);
@@ -749,6 +749,12 @@ class ServerThread extends Thread {
             reportWtf("making Vibrator Service ready", e);
         }
 
+        try {
+            lockSettings.systemReady();
+        } catch (Throwable e) {
+            reportWtf("making Lock Settings Service ready", e);
+        }
+
         if (devicePolicy != null) {
             try {
                 devicePolicy.systemReady();
@@ -789,11 +795,6 @@ class ServerThread extends Thread {
             pm.systemReady();
         } catch (Throwable e) {
             reportWtf("making Package Manager Service ready", e);
-        }
-        try {
-            lockSettings.systemReady();
-        } catch (Throwable e) {
-            reportWtf("making Lock Settings Service ready", e);
         }
 
         IntentFilter filter = new IntentFilter();

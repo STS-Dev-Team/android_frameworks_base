@@ -109,6 +109,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
+import android.os.SELinux;
 import android.os.ServiceManager;
 import android.os.StrictMode;
 import android.os.SystemClock;
@@ -1834,7 +1835,7 @@ public final class ActivityManagerService extends ActivityManagerNative
                 if (cr.binding != null && cr.binding.service != null
                         && cr.binding.service.app != null
                         && cr.binding.service.app.lruSeq != mLruSeq) {
-                    updateLruProcessInternalLocked(cr.binding.service.app, oomAdj,
+                    updateLruProcessInternalLocked(cr.binding.service.app, false,
                             updateActivityTime, i+1);
                 }
             }
@@ -1842,7 +1843,7 @@ public final class ActivityManagerService extends ActivityManagerNative
         for (int j=app.conProviders.size()-1; j>=0; j--) {
             ContentProviderRecord cpr = app.conProviders.get(j).provider;
             if (cpr.proc != null && cpr.proc.lruSeq != mLruSeq) {
-                updateLruProcessInternalLocked(cpr.proc, oomAdj,
+                updateLruProcessInternalLocked(cpr.proc, false,
                         updateActivityTime, i+1);
             }
         }
@@ -2067,7 +2068,7 @@ public final class ActivityManagerService extends ActivityManagerNative
             // the PID of the new process, or else throw a RuntimeException.
             Process.ProcessStartResult startResult = Process.start("android.app.ActivityThread",
                     app.processName, uid, uid, gids, debugFlags,
-                    app.info.targetSdkVersion, null);
+                    app.info.targetSdkVersion, null, null);
 
             BatteryStatsImpl bs = app.batteryStats.getBatteryStats();
             synchronized (bs) {
@@ -3046,7 +3047,12 @@ public final class ActivityManagerService extends ActivityManagerNative
         File tracesFile = new File(tracesPath);
         try {
             File tracesDir = tracesFile.getParentFile();
-            if (!tracesDir.exists()) tracesFile.mkdirs();
+            if (!tracesDir.exists()) {
+                tracesFile.mkdirs();
+                if (!SELinux.restorecon(tracesDir)) {
+                    return null;
+                }
+            }
             FileUtils.setPermissions(tracesDir.getPath(), 0775, -1, -1);  // drwxrwxr-x
 
             if (clearTraces && tracesFile.exists()) tracesFile.delete();
@@ -3150,7 +3156,12 @@ public final class ActivityManagerService extends ActivityManagerNative
             final File tracesDir = tracesFile.getParentFile();
             final File tracesTmp = new File(tracesDir, "__tmp__");
             try {
-                if (!tracesDir.exists()) tracesFile.mkdirs();
+                if (!tracesDir.exists()) {
+                    tracesFile.mkdirs();
+                    if (!SELinux.restorecon(tracesDir.getPath())) {
+                        return;
+                    }
+                }
                 FileUtils.setPermissions(tracesDir.getPath(), 0775, -1, -1);  // drwxrwxr-x
 
                 if (tracesFile.exists()) {
@@ -10973,7 +10984,9 @@ public final class ActivityManagerService extends ActivityManagerNative
                     restart = true;
                 } else {
                     removeDyingProviderLocked(app, cpr, true);
+                    // cpr should have been removed from mLaunchingProviders
                     NL = mLaunchingProviders.size();
+                    i--;
                 }
             }
         }

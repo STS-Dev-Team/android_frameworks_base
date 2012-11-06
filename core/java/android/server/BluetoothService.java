@@ -2450,7 +2450,7 @@ public class BluetoothService extends IBluetooth.Stub {
         BluetoothDeviceProfileState state = mDeviceProfileState.get(address);
         if (state == null) return;
 
-        state.quit();
+        state.doQuit();
         mDeviceProfileState.remove(address);
     }
 

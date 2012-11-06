@@ -973,4 +973,7 @@
 
     <!-- Boolean to enable Stylus gestures -->
     <bool name="config_stylusGestures">false</bool>
+
+    <!-- The default value if the SyncStorageEngine should sync automatically or not -->
+    <bool name="config_syncstorageengine_masterSyncAutomatically">true</bool>
 </resources>

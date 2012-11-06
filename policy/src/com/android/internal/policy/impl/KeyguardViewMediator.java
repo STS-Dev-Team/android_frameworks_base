@@ -19,7 +19,7 @@ package com.android.internal.policy.impl;
 import static android.provider.Settings.System.SCREEN_OFF_TIMEOUT;
 
 import com.android.internal.policy.impl.KeyguardUpdateMonitor.InfoCallbackImpl;
-import com.android.internal.telephony.IccCard;
+import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.widget.LockPatternUtils;
 
 import android.app.ActivityManagerNative;
@@ -232,7 +232,7 @@ public class KeyguardViewMediator implements KeyguardViewCallback,
 
     private KeyguardUpdateMonitor mUpdateMonitor;
 
-    private boolean mScreenOn = false;
+    private boolean mScreenOn;
 
     // last known state of the cellular connection
     private String mPhoneState = TelephonyManager.EXTRA_STATE_IDLE;
@@ -323,6 +323,8 @@ public class KeyguardViewMediator implements KeyguardViewCallback,
 
         final ContentResolver cr = mContext.getContentResolver();
         mShowLockIcon = (Settings.System.getInt(cr, "show_status_bar_lock", 0) == 1);
+
+        mScreenOn = mPM.isScreenOn();
 
         mLockSounds = new SoundPool(1, AudioManager.STREAM_SYSTEM, 0);
         String soundPath = Settings.System.getString(cr, Settings.System.LOCK_SOUND);
@@ -652,10 +654,10 @@ public class KeyguardViewMediator implements KeyguardViewCallback,
         final boolean requireSim = !SystemProperties.getBoolean("keyguard.no_require_sim",
                 false);
         final boolean provisioned = mUpdateMonitor.isDeviceProvisioned();
-        final IccCard.State state = mUpdateMonitor.getSimState();
+        final IccCardConstants.State state = mUpdateMonitor.getSimState();
         final boolean lockedOrMissing = state.isPinLocked()
-                || ((state == IccCard.State.ABSENT
-                || state == IccCard.State.PERM_DISABLED)
+                || ((state == IccCardConstants.State.ABSENT
+                || state == IccCardConstants.State.PERM_DISABLED)
                 && requireSim);
 
         if (!lockedOrMissing && !provisioned) {
@@ -768,7 +770,7 @@ public class KeyguardViewMediator implements KeyguardViewCallback,
     }
 
     /** {@inheritDoc} */
-    public void onSimStateChanged(IccCard.State simState) {
+    public void onSimStateChanged(IccCardConstants.State simState) {
         if (DEBUG) Log.d(TAG, "onSimStateChanged: " + simState);
 
         switch (simState) {

@@ -283,7 +283,7 @@ public class MediaScanner
         "Terror",
         "Indie",
         "Britpop",
-        "Negerpunk",
+        null,
         "Polsk Punk",
         "Beat",
         "Christian Gangsta",
@@ -683,7 +683,7 @@ public class MediaScanner
                     try {
                         short genreIndex = Short.parseShort(number.toString());
                         if (genreIndex >= 0) {
-                            if (genreIndex < ID3_GENRES.length) {
+                            if (genreIndex < ID3_GENRES.length && ID3_GENRES[genreIndex] != null) {
                                 return ID3_GENRES[genreIndex];
                             } else if (genreIndex == 0xFF) {
                                 return null;
@@ -1399,7 +1399,8 @@ public class MediaScanner
         long lastModifiedSeconds = file.lastModified() / 1000;
 
         if (!MediaFile.isAudioFileType(fileType) && !MediaFile.isVideoFileType(fileType) &&
-            !MediaFile.isImageFileType(fileType) && !MediaFile.isPlayListFileType(fileType)) {
+            !MediaFile.isImageFileType(fileType) && !MediaFile.isPlayListFileType(fileType) &&
+            !MediaFile.isDrmFileType(fileType)) {
 
             // no need to use the media scanner, but we need to update last modified and file size
             ContentValues values = new ContentValues();
