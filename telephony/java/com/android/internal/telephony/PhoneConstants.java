@@ -84,6 +84,7 @@ public class PhoneConstants {
     public static final String PHONE_IN_ECM_STATE = "phoneinECMState";
 
     public static final String REASON_LINK_PROPERTIES_CHANGED = "linkPropertiesChanged";
+    public static final String REASON_NV_READY = "NvReady";
 
     /**
      * Return codes for <code>enableApnType()</code>
