@@ -90,6 +90,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 import com.android.internal.statusbar.StatusBarIcon;
 import com.android.internal.statusbar.StatusBarNotification;
 import com.android.systemui.R;
@@ -451,8 +452,6 @@ public class PhoneStatusBar extends BaseStatusBar {
             mIntruderAlertView.setBar(this);
         }
 
-        updateShowSearchHoldoff();
-
         mStatusBarView.mService = this;
 
         mChoreographer = Choreographer.getInstance();
@@ -687,7 +686,16 @@ public class PhoneStatusBar extends BaseStatusBar {
         if (ActivityManager.isHighEndGfx(mDisplay)) {
             lp.flags |= WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
         }
-        lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
+        // Is this lefty mode? && Not Phablet Mode
+        boolean lefty = Settings.System.getBoolean(mContext.getContentResolver(),
+                Settings.System.NAVIGATION_BAR_LEFTY_MODE, false);
+        boolean phablet = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.MODE_TABLET_UI, 0) == 2;
+        if (lefty && !phablet) {
+            lp.gravity = Gravity.BOTTOM | Gravity.RIGHT;
+        } else {
+            lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
+        }
         lp.setTitle("SearchPanel");
         // TODO: Define custom animation for Search panel
         lp.windowAnimations = com.android.internal.R.style.Animation_RecentApplications;
@@ -763,48 +771,8 @@ public class PhoneStatusBar extends BaseStatusBar {
         return mCloseViewHeight;
     }
 
-    private View.OnClickListener mRecentsClickListener = new View.OnClickListener() {
-        public void onClick(View v) {
-            toggleRecentApps();
-        }
-    };
-
-    private int mShowSearchHoldoff = 0;
-    private Runnable mShowSearchPanel = new Runnable() {
-        public void run() {
-            showSearchPanel();
-        }
-    };
-
-    View.OnTouchListener mHomeSearchActionListener = new View.OnTouchListener() {
-        public boolean onTouch(View v, MotionEvent event) {
-            switch(event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                if (!shouldDisableNavbarGestures() && !inKeyguardRestrictedInputMode()) {
-                    mHandler.removeCallbacks(mShowSearchPanel);
-                    mHandler.postDelayed(mShowSearchPanel, mShowSearchHoldoff);
-                }
-            break;
-
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                mHandler.removeCallbacks(mShowSearchPanel);
-            break;
-        }
-        return false;
-        }
-    };
-
     private void prepareNavigationBarView() {
         mNavigationBarView.reorient();
-        
-        if (mNavigationBarView.getRecentsButton() != null){ 
-        	mNavigationBarView.getRecentsButton().setOnClickListener(mRecentsClickListener);
-        	mNavigationBarView.getRecentsButton().setOnTouchListener(mRecentsPanel);
-        }
-        if (mNavigationBarView.getHomeButton() != null) {
-        		mNavigationBarView.getHomeButton().setOnTouchListener(mHomeSearchActionListener);
-        }
         updateSearchPanel();
     }
 
@@ -999,12 +967,11 @@ public class PhoneStatusBar extends BaseStatusBar {
         } catch(android.view.InflateException avIE) {
             Log.d(TAG, "Reinflation failure for the recents panel, new theme is '" + newConfig.customTheme + "' vs current '" + mContext.getResources().getConfiguration().customTheme + "'");
         }
-        updateShowSearchHoldoff();
-    }
-
-    private void updateShowSearchHoldoff() {
-        mShowSearchHoldoff = mContext.getResources().getInteger(
-            R.integer.config_show_search_delay);
+        boolean phablet = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.TABLET_UI, 0) == 2;
+        if ((mNavigationBarView != null) && (mNavigationBarView.mDelegateHelper != null)) {
+            mNavigationBarView.mDelegateHelper.setSwapXY((newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) && !phablet);
+        }
     }
 
     private void loadNotificationShade() {
@@ -2432,6 +2399,8 @@ public class PhoneStatusBar extends BaseStatusBar {
                     weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_TYPE", "updateweather");
                     weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_ISMANUAL", true);
                     v.getContext().sendBroadcast(weatherintent);
+                    animateCollapse();
+                    Toast.makeText(mContext, R.string.update_weather, Toast.LENGTH_SHORT).show();
                 } else {
                     try {
                         intent = Intent.parseUri(mShortClickWeather, 0);
@@ -2465,6 +2434,8 @@ public class PhoneStatusBar extends BaseStatusBar {
                     weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_TYPE", "updateweather");
                     weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_ISMANUAL", true);
                     v.getContext().sendBroadcast(weatherintent);
+                    animateCollapse();
+                    Toast.makeText(mContext, R.string.update_weather, Toast.LENGTH_SHORT).show();
                 } else {
                     try {
                         intent = Intent.parseUri(mLongClickWeather, 0);

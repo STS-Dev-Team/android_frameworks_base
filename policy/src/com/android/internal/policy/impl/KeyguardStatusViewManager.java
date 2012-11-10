@@ -19,6 +19,7 @@ package com.android.internal.policy.impl;
 import com.android.internal.R;
 import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.widget.DigitalClock;
+import com.android.internal.widget.DigitalClockAlt;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.internal.widget.TransportControlView;
 import com.android.internal.policy.impl.KeyguardUpdateMonitor.InfoCallbackImpl;
@@ -36,6 +37,7 @@ import android.content.Context;
 import android.content.ContentUris;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.provider.Settings;
 import android.provider.CalendarContract;
@@ -49,6 +51,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 /***
@@ -84,6 +87,9 @@ class KeyguardStatusViewManager implements OnClickListener {
     public static final String EXTRA_WIND = "wind";
     public static final String EXTRA_LOW = "todays_low";
     public static final String EXTRA_HIGH = "todays_high";
+
+    private static final String SYSTEM = "/system/fonts/";
+    private static final String SYSTEM_FONT_TIME_LIGHT = SYSTEM + "AndroidClockMono-Light.ttf";
 
     private boolean mLockAlwaysBattery;
 
@@ -141,7 +147,14 @@ class KeyguardStatusViewManager implements OnClickListener {
     private CharSequence mSpn;
     protected int mPhoneState;
     private DigitalClock mDigitalClock;
+    private DigitalClockAlt mDigitalClockAlt;
+    private boolean mCirclesLock;
 
+    private static final Typeface sLightFont;
+
+    static {
+        sLightFont = Typeface.createFromFile(SYSTEM_FONT_TIME_LIGHT);
+    }
 
     private class TransientTextManager {
         private TextView mTextView;
@@ -219,9 +232,12 @@ class KeyguardStatusViewManager implements OnClickListener {
         mEmergencyCallButton = (Button) findViewById(R.id.emergencyCallButton);
         mEmergencyCallButtonEnabledInScreen = emergencyButtonEnabledInScreen;
         mDigitalClock = (DigitalClock) findViewById(R.id.time);
+        mDigitalClockAlt = (DigitalClockAlt) findViewById(R.id.time_alt);
         mWeatherPanelView = (WeatherPanel) findViewById(R.id.weatherpanel);
         mWeatherTextView = (WeatherText) findViewById(R.id.weather);
         mCalendarView = (ViewFlipper) findViewById(R.id.calendar);
+
+        mCirclesLock = Settings.System.getBoolean(getContext().getContentResolver(), Settings.System.USE_CIRCLES_LOCKSCREEN, false);
 
         if (mWeatherPanelView != null) {
             mWeatherPanelView.setOnClickListener(mWeatherListener);
@@ -236,6 +252,18 @@ class KeyguardStatusViewManager implements OnClickListener {
             mEmergencyCallButton.setText(R.string.lockscreen_emergency_call);
             mEmergencyCallButton.setOnClickListener(this);
             mEmergencyCallButton.setFocusable(false); // touch only!
+        }
+
+        if (mDateView != null) {
+            if (mCirclesLock) {
+                mDateView.setTypeface(sLightFont);
+            }
+        }
+
+        if (mAlarmStatusView != null) {
+            if (mCirclesLock) {
+                mAlarmStatusView.setTypeface(sLightFont);
+            }
         }
 
         mTransientTextManager = new TransientTextManager(mCarrierView);
@@ -372,6 +400,10 @@ class KeyguardStatusViewManager implements OnClickListener {
             mDigitalClock.updateTime();
         }
 
+        if (mDigitalClockAlt != null) {
+            mDigitalClockAlt.updateTime();
+        }
+
         mUpdateMonitor.registerInfoCallback(mInfoCallback);
         mUpdateMonitor.registerSimStateCallback(mSimStateCallback);
         resetStatusInfo();
@@ -474,6 +506,16 @@ class KeyguardStatusViewManager implements OnClickListener {
         }
     }
 
+    private View.OnClickListener mWeatherListener = new View.OnClickListener() {
+        public void onClick(View v) {
+             Intent weatherintent = new Intent("com.aokp.romcontrol.INTENT_WEATHER_REQUEST");
+             weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_TYPE", "updateweather");
+             weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_ISMANUAL", true);
+             v.getContext().sendBroadcast(weatherintent);
+             Toast.makeText(getContext(), R.string.update_weather, Toast.LENGTH_SHORT).show();
+        }
+    };
+
     private void updateCalendar() {
         ContentResolver resolver = getContext().getContentResolver();
         String calendarSources = Settings.System.getString(resolver,
@@ -512,7 +554,7 @@ class KeyguardStatusViewManager implements OnClickListener {
         if (mCalendarView != null) {
             mCalendarView.removeAllViews();
             Log.d(TAG, "we have " + String.valueOf(mCalendarEvents.size()) + " event(s)");
-            int dateWidth = (int) (findViewById(R.id.time).getWidth() * 1.2);
+            int dateWidth = (int) (findViewById(mCirclesLock ? R.id.time_alt : R.id.time).getWidth() * 1.2);
 
             for (EventBundle e : mCalendarEvents) {
                 String title = e.title + (e.dayString.isEmpty() ? " " : ", ");
@@ -894,15 +936,6 @@ class KeyguardStatusViewManager implements OnClickListener {
         }
     }
 
-    private View.OnClickListener mWeatherListener = new View.OnClickListener() {
-        public void onClick(View v) {
-             Intent weatherintent = new Intent("com.aokp.romcontrol.INTENT_WEATHER_REQUEST");
-             weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_TYPE", "updateweather");
-             weatherintent.putExtra("com.aokp.romcontrol.INTENT_EXTRA_ISMANUAL", true);
-             v.getContext().sendBroadcast(weatherintent);
-
-        }
-    };
 
     /**
      * Performs concentenation of PLMN/SPN
