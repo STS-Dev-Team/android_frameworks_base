@@ -291,4 +291,16 @@ public class TelephonyIntents {
      * QoS State Intent. Used to indicate the status of QoS for the data connection.
      */
     public static final String ACTION_QOS_STATE_IND = "android.intent.action.ACTION_QOS_STATE_IND";
+
+    /* Added for Motorola Code */
+    public static final String ACTION_CALL_DISCONNECTED = "com.motorola.android.intent.action.ACTION_CALL_DISCONNECTED";
+    public static final String ACTION_DEFAULT_SUBSCRIPTION_CHANGED = "android.intent.action.ACTION_DEFAULT_SUBSCRIPTION_CHANGED";
+    public static final String ACTION_DISPLAY_ROAMING_DIALOG = "com.motorola.intent.action.DISPLAY_ROAMING_DIALOG";
+    public static final String ACTION_FIRST_RADIO_ON = "com.motorola.android.intent.action.FIRST_RADIO_ON";
+    public static final String ACTION_GET_REAL_DATA_NET_TYPE = "com.motorola.android.intent.action.GET_REAL_DATA_NET_TYPE";
+    public static final String ACTION_MWI_CHANGED = "com.motorola.android.intent.action.ACTION_MWI_CHANGED";
+    public static final String ACTION_SIM_CONTENTS_LOADED = "android.intent.action.SIM_CONTENTS_LOADED";
+    public static final String ACTION_SIM_STATE_READY = "android.intent.action.SIM_STATE_READY";
+    public static final String ACTION_STATE_REJECT_CODE = "com.motorola.intent.action.GET_REJECT_CODE";
+    public static final String ACTION_UNSOL_OEM_HOOK_RAW = "com.motorola.android.intent.action.ACTION_UNSOL_OEM_HOOK_RAW";
 }
