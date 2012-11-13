@@ -219,6 +219,10 @@ public interface TelephonyProperties
      */
     static final String PROPERTY_CDMA_ROAMING_IPPROTOCOL = "persist.telephony.cdma.rproto";
 
+    /**
+     * Indicates whether Out Of Service is considered as data call disconnect.
+     */
+    static final String PROPERTY_OOS_IS_DISCONNECT = "persist.telephony.oosisdc";
 
     /**
      * Property to control alpha ID display for proactive commands
