@@ -626,6 +626,21 @@ public final class Settings {
     public static final String ACTION_NFCSHARING_SETTINGS =
         "android.settings.NFCSHARING_SETTINGS";
 
+    /**
+     * Activity Action: Show Daydream settings.
+     * <p>
+     * In some cases, a matching Activity may not exist, so ensure you
+     * safeguard against this.
+     * <p>
+     * Input: Nothing.
+     * <p>
+     * Output: Nothing.
+     * @see android.service.dreams.DreamService
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_DREAM_SETTINGS = "android.settings.DREAM_SETTINGS";
+
     // End of Intent actions for Settings
 
     /**
@@ -1705,134 +1720,22 @@ public final class Settings {
         public static final int SCREEN_BRIGHTNESS_MODE_AUTOMATIC = 1;
 
         /**
-         * Indicates that custom light sensor settings has changed.
-         * The value is random and changes reloads light settings.
-         *
-         * @hide
-         */
-        public static final String LIGHTS_CHANGED = "lights_changed";
-
-        /**
-         * Whether custom light sensor levels & values are enabled. The value is
-         * boolean (1 or 0).
-         *
-         * @hide
-         */
-        public static final String LIGHT_SENSOR_CUSTOM = "light_sensor_custom";
-
-        /**
-         * Screen dim value to use if LIGHT_SENSOR_CUSTOM is set. The value is int.
-         * Default is android.os.BRIGHTNESS_DIM.
-         *
-         * @hide
-         */
-        public static final String LIGHT_SCREEN_DIM = "light_screen_dim";
-
-        /**
-         * Custom light sensor levels. The value is a comma separated int array
-         * with length N.
+         * Custom automatic brightness light sensor levels.
+         * The value is a comma separated int array with length N.
          * Example: "100,300,3000".
          *
          * @hide
          */
-        public static final String LIGHT_SENSOR_LEVELS = "light_sensor_levels";
+        public static final String AUTO_BRIGHTNESS_LUX = "auto_brightness_lux";
 
         /**
-         * Custom light sensor lcd values. The value is a comma separated int array
-         * with length N+1.
+         * Custom automatic brightness display backlight brightness values.
+         * The value is a comma separated int array with length N+1.
          * Example: "10,50,100,255".
          *
          * @hide
          */
-        public static final String LIGHT_SENSOR_LCD_VALUES = "light_sensor_lcd_values";
-
-        /**
-         * Custom light sensor lcd values. The value is a comma separated int array
-         * with length N+1.
-         * Example: "10,50,100,255".
-         *
-         * @hide
-         */
-        public static final String LIGHT_SENSOR_BUTTON_VALUES = "light_sensor_button_values";
-
-        /**
-         * Custom light sensor lcd values. The value is a comma separated int array
-         * with length N+1.
-         * Example: "10,50,100,255".
-         *
-         * @hide
-         */
-        public static final String LIGHT_SENSOR_KEYBOARD_VALUES = "light_sensor_keyboard_values";
-
-        /**
-         * Whether light sensor is allowed to decrease when calculating automatic
-         * backlight. The value is boolean (1 or 0).
-         *
-         * @hide
-         */
-        public static final String LIGHT_DECREASE = "light_decrease";
-
-        /**
-         * Light sensor hysteresis for decreasing backlight. The value is
-         * int (0-99) representing % (0-0.99 as float). Example:
-         *
-         * Levels     Output
-         * 0 - 100    50
-         * 100 - 200  100
-         * 200 - Inf  255
-         *
-         * Current sensor value is 150 which gives light value 100. Hysteresis is 50.
-         * Current level lower bound is 100 and previous lower bound is 0.
-         * Sensor value must drop below 100-(100-0)*(50/100)=50 for output to become 50
-         * (corresponding to the 0 - 100 level).
-         * @hide
-         */
-        public static final String LIGHT_HYSTERESIS = "light_hysteresis";
-
-        /**
-         * Whether light sensor used when calculating automatic backlight should
-         * be filtered through an moving average filter.
-         * The value is boolean (1 or 0).
-         *
-         * @hide
-         */
-        public static final String LIGHT_FILTER = "light_filter";
-
-        /**
-         * Window length of filter used when calculating automatic backlight.
-         * One minute means that the average sensor value last minute is used.
-         * The value is integer (milliseconds)
-         *
-         * @hide
-         */
-        public static final String LIGHT_FILTER_WINDOW = "light_filter_window";
-
-        /**
-         * Reset threshold of filter used when calculating automatic backlight.
-         * Sudden large jumps in sensor value resets the filter. This is used
-         * to make the filter respond quickly to large enough changes in input
-         * while still filtering small changes. Example:
-         *
-         * Current filter value (average) is 100 and sensor value is changing to
-         * 10, 150, 100, 30, 50. The filter is continously taking the average of
-         * the samples. Now the user goes outside and the value jumps over 1000.
-         * The difference between current average and new sample is larger than
-         * the reset threshold and filter is reset. It begins calculating a new
-         * average on samples around 1000 (say, 800, 1200, 1000, 1100 etc.)
-         *
-         * The value is integer (lux)
-         *
-         * @hide
-         */
-        public static final String LIGHT_FILTER_RESET = "light_filter_reset";
-
-        /**
-         * Sample interval of filter used when calculating automatic backlight.
-         * The value is integer (milliseconds)
-         *
-         * @hide
-         */
-        public static final String LIGHT_FILTER_INTERVAL = "light_filter_interval";
+        public static final String AUTO_BRIGHTNESS_BACKLIGHT = "auto_brightness_backlight";
 
         /**
          * Whether to enable the electron beam animation when turning screen on
@@ -1879,6 +1782,13 @@ public final class Settings {
         public static final int VOLUME_OVERLAY_EXPANDED = 2;
         /** @hide */
         public static final int VOLUME_OVERLAY_NONE = 3;
+
+        /**
+         * Volume Adjust Sounds Enable, This is the noise made when using volume hard buttons
+         * Defaults to 1 - sounds enabled
+         * @hide
+         */
+        public static final String VOLUME_ADJUST_SOUNDS_ENABLED = "volume_adjust_sounds_enabled";
 
         /**
          * Determines which streams are affected by ringer mode changes. The
@@ -2798,10 +2708,16 @@ public final class Settings {
         public static final String STATUS_BAR_IME_SWITCHER = "status_bar_ime_switcher";
 
          /**
-         * Statusbar State
+         * Expanded desktop on/off state
          * @hide
          */
         public static final String EXPANDED_DESKTOP_STATE = "expanded_desktop_state";
+
+        /**
+         * Expanded desktop style (with status bar or without status bar)
+         * @hide
+         */
+        public static final String EXPANDED_DESKTOP_STYLE = "expanded_desktop_style";
 
         /**
          * Whether to use a separate delay for "slide to unlock" and security
@@ -4950,6 +4866,12 @@ public final class Settings {
         public static final String KILL_APP_LONGPRESS_BACK = "kill_app_longpress_back";
 
         /**
+         * Whether to include options in power menu for rebooting into recovery or bootloader
+         * @hide
+         */
+        public static final String ADVANCED_REBOOT = "advanced_reboot";
+
+        /**
          * This are the settings to be backed up.
          *
          * NOTE: Settings are backed up and restored in the order they appear
@@ -4991,7 +4913,8 @@ public final class Settings {
             MOUNT_UMS_NOTIFY_ENABLED,
             UI_NIGHT_MODE,
             LOCK_SCREEN_OWNER_INFO,
-            LOCK_SCREEN_OWNER_INFO_ENABLED
+            LOCK_SCREEN_OWNER_INFO_ENABLED,
+            ADVANCED_REBOOT
         };
 
         /**
@@ -5216,6 +5139,13 @@ public final class Settings {
          * @hide
          */
         public static final String POWER_SOUNDS_ENABLED = "power_sounds_enabled";
+
+        /**
+         * URI for the "wireless charging started" sound.
+         * @hide
+         */
+        public static final String WIRELESS_CHARGING_STARTED_SOUND =
+                "wireless_charging_started_sound";
 
         /**
          * Whether we keep the device on while the device is plugged in.
@@ -6250,6 +6180,12 @@ public final class Settings {
          * @hide
          */
         public static final String DOCK_AUDIO_MEDIA_ENABLED = "dock_audio_media_enabled";
+
+        /**
+         * Persisted safe headphone volume management state by AudioService
+         * @hide
+         */
+        public static final String AUDIO_SAFE_VOLUME_STATE = "audio_safe_volume_state";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings

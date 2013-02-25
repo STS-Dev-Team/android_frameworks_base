@@ -376,7 +376,7 @@ public class PhoneStatusBar extends BaseStatusBar {
             if (MULTIUSER_DEBUG) Slog.d(TAG, String.format("User setup changed: " +
                     "selfChange=%s userSetup=%s mUserSetup=%s",
                     selfChange, userSetup, mUserSetup));
-            if (mSettingsButton != null && !mHasSettingsPanel) {
+            if (mSettingsButton != null && mHasFlipSettings) {
                 mSettingsButton.setVisibility(userSetup ? View.VISIBLE : View.INVISIBLE);
             }
             if (mSettingsPanel != null) {
@@ -1091,7 +1091,8 @@ public class PhoneStatusBar extends BaseStatusBar {
                 mHandler.sendEmptyMessage(MSG_HIDE_INTRUDER);
             }
 
-            if (CLOSE_PANEL_WHEN_EMPTIED && mNotificationData.size() == 0 && !mAnimating) {
+            if (CLOSE_PANEL_WHEN_EMPTIED && mNotificationData.size() == 0 && !mAnimating
+                    && !isShowingSettings()) {
                 animateCollapsePanels();
             }
         }
@@ -1655,6 +1656,9 @@ public class PhoneStatusBar extends BaseStatusBar {
             return;
         }
 
+        // Settings are not available in setup
+        if (!mUserSetup) return;
+
         if (mHasFlipSettings) {
             mNotificationPanel.expand();
             if (mFlipSettingsView.getVisibility() != View.VISIBLE) {
@@ -1668,6 +1672,9 @@ public class PhoneStatusBar extends BaseStatusBar {
     }
 
     public void switchToSettings() {
+        // Settings are not available in setup
+        if (!mUserSetup) return;
+
         mFlipSettingsView.setScaleX(1f);
         mFlipSettingsView.setVisibility(View.VISIBLE);
         mSettingsButton.setVisibility(View.GONE);
@@ -1724,6 +1731,9 @@ public class PhoneStatusBar extends BaseStatusBar {
     }
 
     public void flipToSettings() {
+        // Settings are not available in setup
+        if (!mUserSetup) return;
+
         if (mFlipSettingsViewAnim != null) mFlipSettingsViewAnim.cancel();
         if (mScrollViewAnim != null) mScrollViewAnim.cancel();
         if (mSettingsButtonAnim != null) mSettingsButtonAnim.cancel();
@@ -2596,11 +2606,9 @@ public class PhoneStatusBar extends BaseStatusBar {
             String action = intent.getAction();
             if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)) {
                 int flags = CommandQueue.FLAG_EXCLUDE_NONE;
-                if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)) {
-                    String reason = intent.getStringExtra("reason");
-                    if (reason != null && reason.equals(SYSTEM_DIALOG_REASON_RECENT_APPS)) {
-                        flags |= CommandQueue.FLAG_EXCLUDE_RECENTS_PANEL;
-                    }
+                String reason = intent.getStringExtra("reason");
+                if (reason != null && reason.equals(SYSTEM_DIALOG_REASON_RECENT_APPS)) {
+                    flags |= CommandQueue.FLAG_EXCLUDE_RECENTS_PANEL;
                 }
                 animateCollapsePanels(flags);
             }

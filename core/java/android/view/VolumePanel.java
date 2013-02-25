@@ -323,6 +323,7 @@ public class VolumePanel extends Handler implements OnSeekBarChangeListener, Vie
         lp.type = LayoutParams.TYPE_VOLUME_OVERLAY;
         lp.width = LayoutParams.WRAP_CONTENT;
         lp.height = LayoutParams.WRAP_CONTENT;
+        lp.privateFlags |= LayoutParams.PRIVATE_FLAG_FORCE_SHOW_NAV_BAR;
         window.setAttributes(lp);
         window.addFlags(LayoutParams.FLAG_NOT_FOCUSABLE | LayoutParams.FLAG_NOT_TOUCH_MODAL
                 | LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH);
@@ -823,6 +824,12 @@ public class VolumePanel extends Handler implements OnSeekBarChangeListener, Vie
     }
 
     protected void onPlaySound(int streamType, int flags) {
+
+        // If preference is no sound - just exit here
+        if (Settings.System.getInt(mContext.getContentResolver(),
+                 Settings.System.VOLUME_ADJUST_SOUNDS_ENABLED, 1) == 0) {
+             return;
+         }
 
         if (hasMessages(MSG_STOP_SOUNDS)) {
             removeMessages(MSG_STOP_SOUNDS);
